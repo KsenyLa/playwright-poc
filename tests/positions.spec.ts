@@ -17,6 +17,10 @@ test.describe('Position Management Tests', () => {
     productPage = new ProductPage(page);
     positionPage = new PositionPage(page);
     
+    // Navigate to a page first so we have a document context
+    await navigationPage.goto('/');
+    await navigationPage.waitForPageLoad();
+    
     // Clear all data
     await positionPage.clearLocalStorage();
     await page.reload();
