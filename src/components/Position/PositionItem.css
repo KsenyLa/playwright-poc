@@ -1,0 +1,46 @@
+.position-item {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow 0.2s;
+}
+
+.position-item:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.position-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.position-info {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.position-label {
+  font-weight: 500;
+  color: #7f8c8d;
+}
+
+.position-value {
+  color: #2c3e50;
+}
+
+.position-value.amount {
+  font-weight: 600;
+  color: #27ae60;
+  font-size: 1.1rem;
+}
+
+.position-actions {
+  display: flex;
+  gap: 0.5rem;
+}
