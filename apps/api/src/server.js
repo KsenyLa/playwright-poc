@@ -1,4 +1,5 @@
-import { createApp, defaultPool } from './app.js'
+import { createApp } from './app.js'
+import { defaultPool } from './db.js'
 
 const port = Number(process.env.PORT || 3001)
 const app = createApp({ db: defaultPool })
