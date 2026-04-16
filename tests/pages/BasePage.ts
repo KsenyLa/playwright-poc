@@ -29,12 +29,20 @@ export class BasePage {
   }
 
   /**
-   * Clear localStorage
+   * Reset backend data in test environment.
+   */
+  async clearTestData() {
+    const response = await this.page.request.delete('http://localhost:3001/test/reset');
+    if (![200, 204].includes(response.status())) {
+      throw new Error(`Failed to reset backend test data: ${response.status()}`);
+    }
+  }
+
+  /**
+   * Backward-compatible alias for existing tests.
    */
   async clearLocalStorage() {
-    await this.page.evaluate(() => {
-      localStorage.clear();
-    });
+    await this.clearTestData();
   }
 
   /**

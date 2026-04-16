@@ -12,7 +12,7 @@ test.describe('Warehouse Management Tests', () => {
     warehousePage = new WarehousePage(page);
     await navigationPage.goto('/warehouses');
     await navigationPage.waitForPageLoad();
-    await warehousePage.clearLocalStorage();
+    await warehousePage.clearTestData();
     await page.reload();
     await navigationPage.waitForPageLoad();
   });

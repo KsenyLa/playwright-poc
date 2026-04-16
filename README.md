@@ -1,125 +1,201 @@
-# Warehouse CRM - Playwright POC
+# Warehouse CRM - React + Express + Postgres + Playwright
 
-A simple warehouse CRM application built with React for learning Playwright automation testing.
+A monorepo POC for warehouse CRUD operations with:
+- `apps/web`: React + Vite frontend
+- `apps/api`: Express + plain SQL (`pg`) + Postgres backend
+- `tests/`: Playwright end-to-end tests
 
-## Features
+## Stack
 
-### Warehouse Management
-- List all warehouses
-- Add new warehouses (name and description)
-- Edit existing warehouses
-- Delete warehouses
+- React 18 + React Router
+- Express 4
+- PostgreSQL 16 (Docker)
+- `pg` (no ORM)
+- Playwright
 
-### Product Management
-- List all products
-- Add new products (name and price)
-- Edit existing products
-- Delete products
+## Monorepo Layout
 
-### Position Management
-- List all positions (product in warehouse with quantity)
-- Add new positions (select product, warehouse, and amount)
-- Edit existing positions
-- Delete positions
+- `apps/web` - frontend app (`src/`, `index.html`, `vite.config.js`)
+- `apps/api` - backend API (`src/`, `db/init`, `tests/`)
+- `tests` - Playwright specs and POM helpers
 
-## Technical Stack
+## API Endpoints
 
-- **React** - UI framework
-- **Vite** - Build tool
-- **React Router** - Navigation
-- **localStorage** - Data persistence
+- `GET /health`
+- `GET/POST /warehouses`
+- `PUT/DELETE /warehouses/:id`
+- `GET/POST /products`
+- `PUT/DELETE /products/:id`
+- `GET/POST /positions`
+- `PUT/DELETE /positions/:id`
+- `POST /migration/import-local`
+- `DELETE /test/reset` (test-only, enabled with `NODE_ENV=test` or `ALLOW_TEST_RESET=true`)
 
-## Getting Started
+Delete behavior:
+- Deleting a warehouse/product that is referenced by positions returns `409`.
 
-### Installation
+## Database Bootstrap and Seed Data
+
+Docker Compose mounts SQL init scripts from `apps/api/db/init` into Postgres:
+- `01_schema.sql` creates tables and constraints.
+- `02_seed.sql` inserts starter warehouses/products/positions.
+
+Important:
+- Postgres init scripts run only when the data volume is created the first time.
+- To re-run bootstrap scripts, use:
+
+```bash
+docker compose down -v && docker compose up -d
+```
+
+## Start Database in Docker
+
+1. Ensure Docker Desktop is running.
+2. From the project root, start Postgres:
+
+```bash
+docker compose up -d
+```
+Starts the Postgres container in detached mode.
+
+3. Confirm container is healthy:
+
+```bash
+docker compose ps
+```
+
+4. Optional: watch DB startup logs:
+
+```bash
+docker compose logs -f postgres
+```
+
+5. Stop the database:
+
+```bash
+docker compose down
+```
+Stops and removes the running Docker Compose containers.
+
+6. Recreate DB volume and rerun schema + seed scripts:
+
+```bash
+docker compose down -v && docker compose up -d
+```
+Removes containers and volumes, then starts Postgres again so bootstrap SQL runs from scratch.
+
+## Setup
+
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### Development
+2. Copy env values
+
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+```
+
+3. Start Postgres (with schema + seed bootstrap on first run)
+
+```bash
+docker compose up -d
+```
+
+## Run
+
+Run both backend + frontend:
 
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5173`
-
-### Build
+Or separately:
 
 ```bash
-npm run build
+npm run dev:api
+npm run dev:web
 ```
 
-## Test IDs
+Frontend: `http://localhost:5173`
+API: `http://localhost:3001`
 
-All interactive elements have `data-testid` attributes for easy Playwright automation:
+`npm run dev:api` now auto-loads env values from `.env` and `apps/api/.env` (API file overrides root).
 
-- Navigation: `nav-link-warehouses`, `nav-link-products`, `nav-link-positions`
-- Buttons: `btn-add-{entity}`, `btn-edit-{entity}-{id}`, `btn-delete-{entity}-{id}`, `btn-save-{entity}`, `btn-cancel-{entity}`
-- Forms: `form-{entity}`
-- Inputs: `input-{field}-{entity}`
-- Lists: `list-{entity}`
+## Data Source
 
-## Data Storage
-
-All data is stored in browser localStorage and persists across page refreshes. The data structure:
-
-- **Warehouses**: `{ id, name, description }`
-- **Products**: `{ id, name, price }`
-- **Positions**: `{ id, productId, warehouseId, amount }`
+The web app now reads and writes data only through the backend API (DB-backed).
+Local browser storage is not used for app data anymore.
+`POST /migration/import-local` is available as an optional manual migration endpoint.
 
 ## Testing
 
-### Running Playwright Tests
-
-The project includes comprehensive Playwright UI autotests using the Page Object Model (POM) pattern.
-
-**Note**: Playwright requires Node.js 18+. If you're using Node 17, you'll need to upgrade to run the tests.
-
-#### Install Playwright Browsers
+### API tests
 
 ```bash
-npx playwright install chromium
+npm run test:api
 ```
 
-#### Run Tests
+Requires `DATABASE_URL` and an initialized Postgres DB.
+
+### Playwright E2E tests
 
 ```bash
-# Run all tests
-npm test
-
-# Run tests in UI mode (interactive)
-npm run test:ui
-
-# Run tests in headed mode (see browser)
-npm run test:headed
+npm run test:e2e
 ```
 
-#### Test Structure
+Playwright starts:
+- API (`npm run dev:api`) and waits for `/health`
+- Web (`npm run dev:web`)
 
-- `tests/pages/` - Page Object Model classes
-  - `BasePage.ts` - Base page with common methods
-  - `NavigationPage.ts` - Navigation page object
-  - `WarehousePage.ts` - Warehouse management page object
-  - `ProductPage.ts` - Product management page object
-  - `PositionPage.ts` - Position management page object
-- `tests/fixtures/` - Test data fixtures
-  - `test-data.ts` - Reusable test data generators
-- `tests/*.spec.ts` - Test files
-  - `navigation.spec.ts` - Navigation tests
-  - `warehouses.spec.ts` - Warehouse CRUD tests
-  - `products.spec.ts` - Product CRUD tests
-  - `positions.spec.ts` - Position CRUD tests
+## Scripts
 
-#### Test Coverage
+- `npm run dev`
+- `npm run dev:web`
+- `npm run dev:api`
+- `npm run build`
+- `npm run preview`
+- `npm run test:e2e`
+- `npm run test:api`
+- `docker compose up -d`
+- `docker compose down`
+- `docker compose down -v && docker compose up -d`
 
-The tests cover:
-- Navigation between all pages
-- CRUD operations for Warehouses (Create, Read, Update, Delete)
-- CRUD operations for Products (Create, Read, Update, Delete)
-- CRUD operations for Positions (Create, Read, Update, Delete)
-- Form validation
-- Data persistence (localStorage)
-- Empty states
-- Multiple item creation and management
+## Troubleshooting: "Failed to fetch" in Frontend
+
+If the UI shows `Failed to fetch` while backend and DB are running, it is usually a CORS origin mismatch.
+
+`http://localhost:5173` and `http://127.0.0.1:5173` are different origins.  
+If frontend runs on `127.0.0.1`, backend must allow that origin too.
+
+Recommended backend env value:
+
+```bash
+CORS_ORIGIN=http://localhost:5173,http://127.0.0.1:5173
+```
+
+Quick check:
+- backend health: `http://localhost:3001/health`
+- warehouses API: `http://localhost:3001/warehouses`
+
+## Troubleshooting: "Database operation failed" in UI
+
+This means frontend reached API, but API could not complete a DB query.
+
+1. Check API health:
+   - `curl http://localhost:3001/health`
+2. Check DB-backed endpoint:
+   - `curl http://localhost:3001/warehouses`
+3. Verify API DB config in `apps/api/.env`:
+
+```bash
+DATABASE_URL=postgresql://warehouse:warehouse@localhost:5432/warehouse_crm
+```
+
+4. Confirm Postgres is running:
+   - `docker compose ps`
+
+If DB is unreachable/misconfigured, API now prints startup error in terminal and exits with a clear message.

@@ -1,36 +1,37 @@
-import { useState, useEffect } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useEffect, useState } from 'react'
 import { positionStorage, warehouseStorage, productStorage } from '../../services/storage'
 import PositionForm from './PositionForm'
 import PositionItem from './PositionItem'
 import './PositionList.css'
 
 function PositionList() {
-  const [positions, setPositions] = useLocalStorage('positions', [])
-  const [warehouses, setWarehouses] = useLocalStorage('warehouses', [])
-  const [products, setProducts] = useLocalStorage('products', [])
+  const [positions, setPositions] = useState([])
+  const [warehouses, setWarehouses] = useState([])
+  const [products, setProducts] = useState([])
+  const [loadError, setLoadError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingPosition, setEditingPosition] = useState(null)
 
+  const loadData = async () => {
+    try {
+      const [positionData, warehouseData, productData] = await Promise.all([
+        positionStorage.getAll(),
+        warehouseStorage.getAll(),
+        productStorage.getAll()
+      ])
+
+      setPositions(positionData)
+      setWarehouses(warehouseData)
+      setProducts(productData)
+      setLoadError('')
+    } catch (error) {
+      console.error('Failed to load positions page data', error)
+      setLoadError(error.message || 'Could not load positions data from backend.')
+    }
+  }
+
   useEffect(() => {
-    // Sync with storage service on mount
-    const storedPositions = positionStorage.getAll()
-    const storedWarehouses = warehouseStorage.getAll()
-    const storedProducts = productStorage.getAll()
-    
-    if (storedPositions.length !== positions.length || 
-        JSON.stringify(storedPositions) !== JSON.stringify(positions)) {
-      setPositions(storedPositions)
-    }
-    if (storedWarehouses.length !== warehouses.length || 
-        JSON.stringify(storedWarehouses) !== JSON.stringify(warehouses)) {
-      setWarehouses(storedWarehouses)
-    }
-    if (storedProducts.length !== products.length || 
-        JSON.stringify(storedProducts) !== JSON.stringify(products)) {
-      setProducts(storedProducts)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadData()
   }, [])
 
   const handleAdd = () => {
@@ -43,21 +44,34 @@ function PositionList() {
     setShowForm(true)
   }
 
-  const handleSave = (positionData) => {
-    if (editingPosition) {
-      positionStorage.update(editingPosition.id, positionData)
-    } else {
-      positionStorage.create(positionData)
+  const handleSave = async (positionData) => {
+    try {
+      if (editingPosition) {
+        await positionStorage.update(editingPosition.id, positionData)
+      } else {
+        await positionStorage.create(positionData)
+      }
+
+      await loadData()
+      setShowForm(false)
+      setEditingPosition(null)
+    } catch (error) {
+      console.error('Failed to save position', error)
+      window.alert(error.message || 'Failed to save position')
     }
-    setPositions(positionStorage.getAll())
-    setShowForm(false)
-    setEditingPosition(null)
   }
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this position?')) {
-      positionStorage.delete(id)
-      setPositions(positionStorage.getAll())
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this position?')) {
+      return
+    }
+
+    try {
+      await positionStorage.delete(id)
+      await loadData()
+    } catch (error) {
+      console.error('Failed to delete position', error)
+      window.alert(error.message || 'Failed to delete position')
     }
   }
 
@@ -66,10 +80,10 @@ function PositionList() {
     setEditingPosition(null)
   }
 
-  // Get position with resolved names for display
   const getPositionWithNames = (position) => {
-    const product = products.find(p => p.id === position.productId)
-    const warehouse = warehouses.find(w => w.id === position.warehouseId)
+    const product = products.find((candidate) => candidate.id === position.productId)
+    const warehouse = warehouses.find((candidate) => candidate.id === position.warehouseId)
+
     return {
       ...position,
       productName: product?.name || 'Unknown Product',
@@ -103,6 +117,11 @@ function PositionList() {
       )}
 
       <div className="list-container" data-testid="list-positions">
+        {loadError && (
+          <p className="empty-message" data-testid="error-positions">
+            {loadError}
+          </p>
+        )}
         {positions.length === 0 ? (
           <p className="empty-message">No positions found. Add your first position!</p>
         ) : (

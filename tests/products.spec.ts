@@ -12,7 +12,7 @@ test.describe('Product Management Tests', () => {
     productPage = new ProductPage(page);
     await navigationPage.goto('/products');
     await navigationPage.waitForPageLoad();
-    await productPage.clearLocalStorage();
+    await productPage.clearTestData();
     await page.reload();
     await navigationPage.waitForPageLoad();
   });

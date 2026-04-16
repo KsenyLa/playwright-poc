@@ -1,23 +1,28 @@
-import { useState, useEffect } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useEffect, useState } from 'react'
 import { productStorage } from '../../services/storage'
 import ProductForm from './ProductForm'
 import ProductItem from './ProductItem'
 import './ProductList.css'
 
 function ProductList() {
-  const [products, setProducts] = useLocalStorage('products', [])
+  const [products, setProducts] = useState([])
+  const [loadError, setLoadError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
 
-  useEffect(() => {
-    // Sync with storage service on mount
-    const stored = productStorage.getAll()
-    if (stored.length !== products.length || 
-        JSON.stringify(stored) !== JSON.stringify(products)) {
-      setProducts(stored)
+  const loadProducts = async () => {
+    try {
+      const data = await productStorage.getAll()
+      setProducts(data)
+      setLoadError('')
+    } catch (error) {
+      console.error('Failed to load products', error)
+      setLoadError(error.message || 'Could not load products from backend.')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }
+
+  useEffect(() => {
+    loadProducts()
   }, [])
 
   const handleAdd = () => {
@@ -30,21 +35,34 @@ function ProductList() {
     setShowForm(true)
   }
 
-  const handleSave = (productData) => {
-    if (editingProduct) {
-      productStorage.update(editingProduct.id, productData)
-    } else {
-      productStorage.create(productData)
+  const handleSave = async (productData) => {
+    try {
+      if (editingProduct) {
+        await productStorage.update(editingProduct.id, productData)
+      } else {
+        await productStorage.create(productData)
+      }
+
+      await loadProducts()
+      setShowForm(false)
+      setEditingProduct(null)
+    } catch (error) {
+      console.error('Failed to save product', error)
+      window.alert(error.message || 'Failed to save product')
     }
-    setProducts(productStorage.getAll())
-    setShowForm(false)
-    setEditingProduct(null)
   }
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      productStorage.delete(id)
-      setProducts(productStorage.getAll())
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) {
+      return
+    }
+
+    try {
+      await productStorage.delete(id)
+      await loadProducts()
+    } catch (error) {
+      console.error('Failed to delete product', error)
+      window.alert(error.message || 'Failed to delete product')
     }
   }
 
@@ -77,6 +95,11 @@ function ProductList() {
       )}
 
       <div className="list-container" data-testid="list-products">
+        {loadError && (
+          <p className="empty-message" data-testid="error-products">
+            {loadError}
+          </p>
+        )}
         {products.length === 0 ? (
           <p className="empty-message">No products found. Add your first product!</p>
         ) : (

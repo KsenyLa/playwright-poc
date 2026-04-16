@@ -1,28 +1,29 @@
 {
   "name": "warehouse-crm",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "playwright test",
+    "dev": "npm run dev:api & npm run dev:web",
+    "dev:web": "npm run dev --workspace apps/web",
+    "dev:api": "npm run dev --workspace apps/api",
+    "build": "npm run build --workspace apps/web",
+    "preview": "npm run preview --workspace apps/web",
+    "test": "npm run test:e2e",
+    "test:e2e": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:headed": "playwright test --headed"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0"
+    "test:headed": "playwright test --headed",
+    "test:api": "npm run test --workspace apps/api",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
     "@types/node": "^25.2.1",
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^3.1.0",
-    "typescript": "^5.9.3",
-    "vite": "^4.5.0"
+    "typescript": "^5.9.3"
   }
 }

@@ -1,23 +1,28 @@
-import { useState, useEffect } from 'react'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { useEffect, useState } from 'react'
 import { warehouseStorage } from '../../services/storage'
 import WarehouseForm from './WarehouseForm'
 import WarehouseItem from './WarehouseItem'
 import './WarehouseList.css'
 
 function WarehouseList() {
-  const [warehouses, setWarehouses] = useLocalStorage('warehouses', [])
+  const [warehouses, setWarehouses] = useState([])
+  const [loadError, setLoadError] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingWarehouse, setEditingWarehouse] = useState(null)
 
-  useEffect(() => {
-    // Sync with storage service on mount
-    const stored = warehouseStorage.getAll()
-    if (stored.length !== warehouses.length || 
-        JSON.stringify(stored) !== JSON.stringify(warehouses)) {
-      setWarehouses(stored)
+  const loadWarehouses = async () => {
+    try {
+      const data = await warehouseStorage.getAll()
+      setWarehouses(data)
+      setLoadError('')
+    } catch (error) {
+      console.error('Failed to load warehouses', error)
+      setLoadError(error.message || 'Could not load warehouses from backend.')
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }
+
+  useEffect(() => {
+    loadWarehouses()
   }, [])
 
   const handleAdd = () => {
@@ -30,21 +35,34 @@ function WarehouseList() {
     setShowForm(true)
   }
 
-  const handleSave = (warehouseData) => {
-    if (editingWarehouse) {
-      warehouseStorage.update(editingWarehouse.id, warehouseData)
-    } else {
-      warehouseStorage.create(warehouseData)
+  const handleSave = async (warehouseData) => {
+    try {
+      if (editingWarehouse) {
+        await warehouseStorage.update(editingWarehouse.id, warehouseData)
+      } else {
+        await warehouseStorage.create(warehouseData)
+      }
+
+      await loadWarehouses()
+      setShowForm(false)
+      setEditingWarehouse(null)
+    } catch (error) {
+      console.error('Failed to save warehouse', error)
+      window.alert(error.message || 'Failed to save warehouse')
     }
-    setWarehouses(warehouseStorage.getAll())
-    setShowForm(false)
-    setEditingWarehouse(null)
   }
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this warehouse?')) {
-      warehouseStorage.delete(id)
-      setWarehouses(warehouseStorage.getAll())
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this warehouse?')) {
+      return
+    }
+
+    try {
+      await warehouseStorage.delete(id)
+      await loadWarehouses()
+    } catch (error) {
+      console.error('Failed to delete warehouse', error)
+      window.alert(error.message || 'Failed to delete warehouse')
     }
   }
 
@@ -77,6 +95,11 @@ function WarehouseList() {
       )}
 
       <div className="list-container" data-testid="list-warehouses">
+        {loadError && (
+          <p className="empty-message" data-testid="error-warehouses">
+            {loadError}
+          </p>
+        )}
         {warehouses.length === 0 ? (
           <p className="empty-message">No warehouses found. Add your first warehouse!</p>
         ) : (

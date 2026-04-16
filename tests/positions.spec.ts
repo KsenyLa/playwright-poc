@@ -22,7 +22,7 @@ test.describe('Position Management Tests', () => {
     await navigationPage.waitForPageLoad();
     
     // Clear all data
-    await positionPage.clearLocalStorage();
+    await positionPage.clearTestData();
     await page.reload();
     await navigationPage.waitForPageLoad();
     
