@@ -5,6 +5,7 @@ import { Pool } from 'pg'
 import { createApp } from '../src/app.js'
 
 const dbUrl = process.env.DATABASE_URL
+const TEST_RESET_TOKEN = 'local-e2e-reset'
 
 if (!dbUrl) {
   test('api tests skipped without DATABASE_URL', { skip: true }, () => {})
@@ -19,7 +20,9 @@ if (!dbUrl) {
   })
 
   test.beforeEach(async () => {
-    await request(app).delete('/test/reset')
+    await request(app)
+      .delete('/test/reset')
+      .set('x-test-reset-token', TEST_RESET_TOKEN)
   })
 
   test('GET /health', async () => {

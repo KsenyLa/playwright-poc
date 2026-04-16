@@ -1,5 +1,7 @@
 import { Page, Locator } from '@playwright/test';
 
+const TEST_RESET_TOKEN = 'local-e2e-reset';
+
 export class BasePage {
   readonly page: Page;
 
@@ -32,7 +34,11 @@ export class BasePage {
    * Reset backend data in test environment.
    */
   async clearTestData() {
-    const response = await this.page.request.delete('http://localhost:3001/test/reset');
+    const response = await this.page.request.delete('http://localhost:3001/test/reset', {
+      headers: {
+        'x-test-reset-token': TEST_RESET_TOKEN,
+      },
+    });
     if (![200, 204].includes(response.status())) {
       throw new Error(`Failed to reset backend test data: ${response.status()}`);
     }

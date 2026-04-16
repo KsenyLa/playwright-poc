@@ -25,4 +25,3 @@ dist-ssr
 playwright-report
 test-results
 .env
-apps/api/.env

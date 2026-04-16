@@ -13,6 +13,29 @@ import {
 } from '../utils/payloads.js'
 import { wrap } from '../utils/http.js'
 
+const DEFAULT_TEST_RESET_TOKEN = 'local-e2e-reset'
+const LOOPBACK_ADDRESSES = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1'])
+
+const isLoopbackRequest = (req) => {
+  const address = req.ip || req.socket?.remoteAddress || ''
+  return LOOPBACK_ADDRESSES.has(address)
+}
+
+const canResetTestData = (req) => {
+  if (process.env.NODE_ENV === 'test' || process.env.ALLOW_TEST_RESET === 'true') {
+    return true
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return false
+  }
+
+  const requestToken = req.get('x-test-reset-token')
+  const expectedToken = process.env.TEST_RESET_TOKEN || DEFAULT_TEST_RESET_TOKEN
+
+  return isLoopbackRequest(req) && requestToken === expectedToken
+}
+
 export const createSystemRouter = ({ db }) => {
   const router = Router()
 
@@ -118,8 +141,8 @@ export const createSystemRouter = ({ db }) => {
     res.status(200).json({ imported: result })
   }))
 
-  router.delete('/test/reset', wrap(async (_req, res) => {
-    if (process.env.NODE_ENV !== 'test' && process.env.ALLOW_TEST_RESET !== 'true') {
+  router.delete('/test/reset', wrap(async (req, res) => {
+    if (!canResetTestData(req)) {
       throw new ApiError(403, 'FORBIDDEN', 'Test reset endpoint is disabled')
     }
 

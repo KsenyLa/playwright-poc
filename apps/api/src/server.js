@@ -5,7 +5,7 @@ const port = Number(process.env.PORT || 3001)
 const app = createApp({ db: defaultPool })
 
 if (!process.env.DATABASE_URL) {
-  console.error('DATABASE_URL is not set. Configure .env or apps/api/.env before starting the API.')
+  console.error('DATABASE_URL is not set. Configure the root .env before starting the API.')
   process.exit(1)
 }
 

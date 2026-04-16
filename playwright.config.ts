@@ -27,6 +27,7 @@ export default defineConfig({
       env: {
         NODE_ENV: 'test',
         ALLOW_TEST_RESET: 'true',
+        TEST_RESET_TOKEN: 'local-e2e-reset',
       },
     },
     {

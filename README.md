@@ -29,7 +29,7 @@ A monorepo POC for warehouse CRUD operations with:
 - `GET/POST /positions`
 - `PUT/DELETE /positions/:id`
 - `POST /migration/import-local`
-- `DELETE /test/reset` (test-only, enabled with `NODE_ENV=test` or `ALLOW_TEST_RESET=true`)
+- `DELETE /test/reset` (test-only, available for local E2E via test reset token)
 
 Delete behavior:
 - Deleting a warehouse/product that is referenced by positions returns `409`.
@@ -96,7 +96,6 @@ npm install
 
 ```bash
 cp .env.example .env
-cp apps/api/.env.example apps/api/.env
 ```
 
 3. Start Postgres (with schema + seed bootstrap on first run)
@@ -123,7 +122,7 @@ npm run dev:web
 Frontend: `http://localhost:5173`
 API: `http://localhost:3001`
 
-`npm run dev:api` now auto-loads env values from `.env` and `apps/api/.env` (API file overrides root).
+`npm run dev:api` auto-loads env values from the root `.env`.
 
 ## Data Source
 
@@ -189,7 +188,7 @@ This means frontend reached API, but API could not complete a DB query.
    - `curl http://localhost:3001/health`
 2. Check DB-backed endpoint:
    - `curl http://localhost:3001/warehouses`
-3. Verify API DB config in `apps/api/.env`:
+3. Verify API DB config in `.env`:
 
 ```bash
 DATABASE_URL=postgresql://warehouse:warehouse@localhost:5432/warehouse_crm
