@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { NavigationPage } from './pages/NavigationPage';
 import { WarehousePage } from './pages/WarehousePage';
-import { testWarehouse } from './fixtures/test-data';
+import { dataFactory } from './fixtures/test-data';
 
 test.describe('Warehouse Management Tests', () => {
   let navigationPage: NavigationPage;
@@ -26,7 +26,7 @@ test.describe('Warehouse Management Tests', () => {
   });
 
   test('should create a new warehouse', async () => {
-    const warehouse = testWarehouse(1);
+    const warehouse = dataFactory.createWarehouse(1);
     
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
@@ -39,7 +39,7 @@ test.describe('Warehouse Management Tests', () => {
   });
 
   test('should create warehouse with only name (no description)', async () => {
-    const warehouse = testWarehouse(2);
+    const warehouse = dataFactory.createWarehouse(2);
     
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse.name);
@@ -51,7 +51,7 @@ test.describe('Warehouse Management Tests', () => {
 
   test('should edit an existing warehouse', async () => {
     // Create a warehouse first
-    const originalWarehouse = testWarehouse(3);
+    const originalWarehouse = dataFactory.createWarehouse(3);
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(originalWarehouse.name, originalWarehouse.description);
     await warehousePage.saveWarehouse();
@@ -76,7 +76,7 @@ test.describe('Warehouse Management Tests', () => {
 
   test('should delete an existing warehouse', async () => {
     // Create a warehouse first
-    const warehouse = testWarehouse(4);
+    const warehouse = dataFactory.createWarehouse(4);
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
     await warehousePage.saveWarehouse();
@@ -129,7 +129,11 @@ test.describe('Warehouse Management Tests', () => {
   });
 
   test('should create multiple warehouses', async () => {
-    const warehouses = [testWarehouse(5), testWarehouse(6), testWarehouse(7)];
+    const warehouses = [
+      dataFactory.createWarehouse(5),
+      dataFactory.createWarehouse(6),
+      dataFactory.createWarehouse(7)
+    ];
     
     for (const warehouse of warehouses) {
       await warehousePage.clickAddWarehouse();
@@ -148,7 +152,7 @@ test.describe('Warehouse Management Tests', () => {
   });
 
   test('should persist warehouses after page refresh', async () => {
-    const warehouse = testWarehouse(8);
+    const warehouse = dataFactory.createWarehouse(8);
     
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);

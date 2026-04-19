@@ -3,7 +3,7 @@ import { NavigationPage } from './pages/NavigationPage';
 import { WarehousePage } from './pages/WarehousePage';
 import { ProductPage } from './pages/ProductPage';
 import { PositionPage } from './pages/PositionPage';
-import { testWarehouse, testProduct, testPosition } from './fixtures/test-data';
+import { dataFactory } from './fixtures/test-data';
 
 test.describe('Position Management Tests', () => {
   let navigationPage: NavigationPage;
@@ -28,13 +28,13 @@ test.describe('Position Management Tests', () => {
     
     // Set up test data: create at least one warehouse and one product
     await navigationPage.navigateToWarehouses();
-    const warehouse = testWarehouse(1);
+    const warehouse = dataFactory.createWarehouse(1);
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
     await warehousePage.saveWarehouse();
     
     await navigationPage.navigateToProducts();
-    const product = testProduct(1);
+    const product = dataFactory.createProduct(1);
     await productPage.clickAddProduct();
     await productPage.fillProductForm(product.name, product.price);
     await productPage.saveProduct();
@@ -55,12 +55,12 @@ test.describe('Position Management Tests', () => {
   test('should create a new position', async () => {
     // Get warehouse and product names from setup
     await navigationPage.navigateToWarehouses();
-    const warehouseName = testWarehouse(1).name;
+    const warehouseName = dataFactory.createWarehouse(1).name;
     await navigationPage.navigateToProducts();
-    const productName = testProduct(1).name;
+    const productName = dataFactory.createProduct(1).name;
     
     await navigationPage.navigateToPositions();
-    const position = testPosition(productName, warehouseName, 10);
+    const position = dataFactory.createPosition(productName, warehouseName, 10);
     
     await positionPage.clickAddPosition();
     await positionPage.fillPositionForm(position.productName, position.warehouseName, position.amount);
@@ -79,12 +79,12 @@ test.describe('Position Management Tests', () => {
   test('should edit an existing position', async () => {
     // Create a position first
     await navigationPage.navigateToWarehouses();
-    const warehouse1 = testWarehouse(1).name;
+    const warehouse1 = dataFactory.createWarehouse(1).name;
     await navigationPage.navigateToProducts();
-    const product1 = testProduct(1).name;
+    const product1 = dataFactory.createProduct(1).name;
     
     await navigationPage.navigateToPositions();
-    const originalPosition = testPosition(product1, warehouse1, 10);
+    const originalPosition = dataFactory.createPosition(product1, warehouse1, 10);
     
     await positionPage.clickAddPosition();
     await positionPage.fillPositionForm(
@@ -120,12 +120,12 @@ test.describe('Position Management Tests', () => {
   test('should delete an existing position', async () => {
     // Create a position first
     await navigationPage.navigateToWarehouses();
-    const warehouseName = testWarehouse(1).name;
+    const warehouseName = dataFactory.createWarehouse(1).name;
     await navigationPage.navigateToProducts();
-    const productName = testProduct(1).name;
+    const productName = dataFactory.createProduct(1).name;
     
     await navigationPage.navigateToPositions();
-    const position = testPosition(productName, warehouseName, 15);
+    const position = dataFactory.createPosition(productName, warehouseName, 15);
     
     await positionPage.clickAddPosition();
     await positionPage.fillPositionForm(position.productName, position.warehouseName, position.amount);
@@ -160,9 +160,9 @@ test.describe('Position Management Tests', () => {
 
   test('should cancel position form without saving', async () => {
     await navigationPage.navigateToWarehouses();
-    const warehouseName = testWarehouse(1).name;
+    const warehouseName = dataFactory.createWarehouse(1).name;
     await navigationPage.navigateToProducts();
-    const productName = testProduct(1).name;
+    const productName = dataFactory.createProduct(1).name;
     
     await navigationPage.navigateToPositions();
     await positionPage.clickAddPosition();
@@ -209,13 +209,13 @@ test.describe('Position Management Tests', () => {
   test('should create multiple positions with different products and warehouses', async () => {
     // Create additional warehouses and products
     await navigationPage.navigateToWarehouses();
-    const warehouse2 = testWarehouse(2);
+    const warehouse2 = dataFactory.createWarehouse(2);
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse2.name, warehouse2.description);
     await warehousePage.saveWarehouse();
     
     await navigationPage.navigateToProducts();
-    const product2 = testProduct(2);
+    const product2 = dataFactory.createProduct(2);
     await productPage.clickAddProduct();
     await productPage.fillProductForm(product2.name, product2.price);
     await productPage.saveProduct();
@@ -223,9 +223,13 @@ test.describe('Position Management Tests', () => {
     // Create multiple positions
     await navigationPage.navigateToPositions();
     const positions = [
-      testPosition(testProduct(1).name, testWarehouse(1).name, 10),
-      testPosition(testProduct(1).name, warehouse2.name, 20),
-      testPosition(product2.name, testWarehouse(1).name, 30),
+      dataFactory.createPosition(
+        dataFactory.createProduct(1).name,
+        dataFactory.createWarehouse(1).name,
+        10
+      ),
+      dataFactory.createPosition(dataFactory.createProduct(1).name, warehouse2.name, 20),
+      dataFactory.createPosition(product2.name, dataFactory.createWarehouse(1).name, 30),
     ];
     
     for (const position of positions) {
@@ -250,12 +254,12 @@ test.describe('Position Management Tests', () => {
 
   test('should persist positions after page refresh', async () => {
     await navigationPage.navigateToWarehouses();
-    const warehouseName = testWarehouse(1).name;
+    const warehouseName = dataFactory.createWarehouse(1).name;
     await navigationPage.navigateToProducts();
-    const productName = testProduct(1).name;
+    const productName = dataFactory.createProduct(1).name;
     
     await navigationPage.navigateToPositions();
-    const position = testPosition(productName, warehouseName, 50);
+    const position = dataFactory.createPosition(productName, warehouseName, 50);
     
     await positionPage.clickAddPosition();
     await positionPage.fillPositionForm(position.productName, position.warehouseName, position.amount);
@@ -278,12 +282,12 @@ test.describe('Position Management Tests', () => {
 
   test('should display product and warehouse names in position list', async () => {
     await navigationPage.navigateToWarehouses();
-    const warehouseName = testWarehouse(1).name;
+    const warehouseName = dataFactory.createWarehouse(1).name;
     await navigationPage.navigateToProducts();
-    const productName = testProduct(1).name;
+    const productName = dataFactory.createProduct(1).name;
     
     await navigationPage.navigateToPositions();
-    const position = testPosition(productName, warehouseName, 100);
+    const position = dataFactory.createPosition(productName, warehouseName, 100);
     
     await positionPage.clickAddPosition();
     await positionPage.fillPositionForm(position.productName, position.warehouseName, position.amount);

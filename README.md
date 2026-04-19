@@ -143,12 +143,23 @@ Requires `DATABASE_URL` and an initialized Postgres DB.
 ### Playwright E2E tests
 
 ```bash
-npm run test:e2e
+npm run test
 ```
 
 Playwright starts:
 - API (`npm run dev:api`) and waits for `/health`
 - Web (`npm run dev:web`)
+
+The E2E suite currently runs with a single Playwright worker because tests share one backend and one database.
+
+To open the HTML Playwright report in a browser, use:
+
+```bash
+npx playwright show-report
+```
+
+Report URL:
+- `http://localhost:9323`
 
 ## Scripts
 
@@ -197,4 +208,4 @@ DATABASE_URL=postgresql://warehouse:warehouse@localhost:5432/warehouse_crm
 4. Confirm Postgres is running:
    - `docker compose ps`
 
-If DB is unreachable/misconfigured, API now prints startup error in terminal and exits with a clear message.
+If DB is unreachable/misconfigured, API prints startup error in terminal and exits with a clear message.

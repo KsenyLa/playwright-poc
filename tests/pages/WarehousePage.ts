@@ -29,7 +29,13 @@ export class WarehousePage extends BasePage {
    */
   async saveWarehouse() {
     await this.click('btn-save-warehouse');
-    await this.page.waitForTimeout(500); // Wait for form to close
+    await this.page.waitForSelector('[data-testid="form-warehouse"]', {
+      state: 'hidden',
+      timeout: 5000,
+    }).catch(() => {
+      // Form might already be hidden by the time we start waiting.
+    });
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**
@@ -60,7 +66,7 @@ export class WarehousePage extends BasePage {
    */
   async clickDeleteWarehouse(id: string) {
     await this.click(`btn-delete-warehouse-${id}`);
-    await this.page.waitForTimeout(500); // Wait for deletion
+    await this.page.waitForLoadState('networkidle');
   }
 
   /**

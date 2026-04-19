@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { NavigationPage } from './pages/NavigationPage';
 import { ProductPage } from './pages/ProductPage';
-import { testProduct } from './fixtures/test-data';
+import { dataFactory } from './fixtures/test-data';
 
 test.describe('Product Management Tests', () => {
   let navigationPage: NavigationPage;
@@ -26,7 +26,7 @@ test.describe('Product Management Tests', () => {
   });
 
   test('should create a new product', async () => {
-    const product = testProduct(1);
+    const product = dataFactory.createProduct(1);
     
     await productPage.clickAddProduct();
     await productPage.fillProductForm(product.name, product.price);
@@ -42,7 +42,7 @@ test.describe('Product Management Tests', () => {
 
   test('should edit an existing product', async () => {
     // Create a product first
-    const originalProduct = testProduct(2);
+    const originalProduct = dataFactory.createProduct(2);
     await productPage.clickAddProduct();
     await productPage.fillProductForm(originalProduct.name, originalProduct.price);
     await productPage.saveProduct();
@@ -69,7 +69,7 @@ test.describe('Product Management Tests', () => {
 
   test('should delete an existing product', async () => {
     // Create a product first
-    const product = testProduct(3);
+    const product = dataFactory.createProduct(3);
     await productPage.clickAddProduct();
     await productPage.fillProductForm(product.name, product.price);
     await productPage.saveProduct();
@@ -135,7 +135,11 @@ test.describe('Product Management Tests', () => {
   });
 
   test('should create multiple products', async () => {
-    const products = [testProduct(4), testProduct(5), testProduct(6)];
+    const products = [
+      dataFactory.createProduct(4),
+      dataFactory.createProduct(5),
+      dataFactory.createProduct(6)
+    ];
     
     for (const product of products) {
       await productPage.clickAddProduct();
@@ -156,7 +160,7 @@ test.describe('Product Management Tests', () => {
   });
 
   test('should persist products after page refresh', async () => {
-    const product = testProduct(7);
+    const product = dataFactory.createProduct(7);
     
     await productPage.clickAddProduct();
     await productPage.fillProductForm(product.name, product.price);
