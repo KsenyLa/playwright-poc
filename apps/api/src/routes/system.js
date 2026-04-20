@@ -118,19 +118,5 @@ export const createSystemRouter = ({ db }) => {
     res.status(200).json({ imported: result })
   }))
 
-  router.delete('/test/reset', wrap(async (_req, res) => {
-    if (process.env.NODE_ENV !== 'test' && process.env.ALLOW_TEST_RESET !== 'true') {
-      throw new ApiError(403, 'FORBIDDEN', 'Test reset endpoint is disabled')
-    }
-
-    await withTransaction(db, async (tx) => {
-      await tx.query('DELETE FROM positions')
-      await tx.query('DELETE FROM products')
-      await tx.query('DELETE FROM warehouses')
-    })
-
-    res.status(204).send()
-  }))
-
   return router
 }

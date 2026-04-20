@@ -5,6 +5,8 @@ import { ProductPage } from './pages/ProductPage';
 import { PositionPage } from './pages/PositionPage';
 
 test.describe('Navigation Tests', () => {
+  test.describe.configure({ mode: 'serial' });
+
   let navigationPage: NavigationPage;
   let warehousePage: WarehousePage;
   let productPage: ProductPage;
@@ -69,19 +71,16 @@ test.describe('Navigation Tests', () => {
   });
 
   test('should highlight active navigation link', async () => {
-    // Start on warehouses
     await navigationPage.navigateToWarehouses();
     expect(await navigationPage.isActiveLink('warehouses')).toBe(true);
     expect(await navigationPage.isActiveLink('products')).toBe(false);
     expect(await navigationPage.isActiveLink('positions')).toBe(false);
 
-    // Navigate to products
     await navigationPage.navigateToProducts();
     expect(await navigationPage.isActiveLink('warehouses')).toBe(false);
     expect(await navigationPage.isActiveLink('products')).toBe(true);
     expect(await navigationPage.isActiveLink('positions')).toBe(false);
 
-    // Navigate to positions
     await navigationPage.navigateToPositions();
     expect(await navigationPage.isActiveLink('warehouses')).toBe(false);
     expect(await navigationPage.isActiveLink('products')).toBe(false);

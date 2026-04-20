@@ -1,4 +1,4 @@
-import { Page, Locator } from '@playwright/test';
+import { Page, Locator, expect } from '@playwright/test';
 
 export class BasePage {
   readonly page: Page;
@@ -29,20 +29,13 @@ export class BasePage {
   }
 
   /**
-   * Reset backend data in test environment.
+   * Accept the next browser dialog, usually a delete confirmation.
    */
-  async clearTestData() {
-    const response = await this.page.request.delete('http://localhost:3001/test/reset');
-    if (![200, 204].includes(response.status())) {
-      throw new Error(`Failed to reset backend test data: ${response.status()}`);
-    }
-  }
-
-  /**
-   * Backward-compatible alias for existing tests.
-   */
-  async clearLocalStorage() {
-    await this.clearTestData();
+  async acceptNextDialog(expectedType: 'alert' | 'beforeunload' | 'confirm' | 'prompt' = 'confirm') {
+    this.page.once('dialog', async (dialog) => {
+      expect(dialog.type()).toBe(expectedType);
+      await dialog.accept();
+    });
   }
 
   /**

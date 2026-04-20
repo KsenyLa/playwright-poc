@@ -2,6 +2,21 @@
  * Test data fixtures for generating test entities
  */
 
+const appendScope = (value: string, scope?: string): string =>
+  scope ? `${value} [${scope}]` : value;
+
+const normalizeScopeLabel = (label: string): string =>
+  label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'scenario';
+
+const buildScenarioScope = (label: string): string => {
+  const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
+  const randomSuffix = Math.random().toString(36).slice(2, 8);
+  return `${normalizeScopeLabel(label)}-${timestamp}-${randomSuffix}`;
+};
+
 export interface WarehouseData {
   name: string;
   description: string;
@@ -18,52 +33,44 @@ export interface PositionData {
   amount: number;
 }
 
-/**
- * Generate test warehouse data
- */
-export function testWarehouse(index: number = 1): WarehouseData {
-  return {
-    name: `Test Warehouse ${index}`,
-    description: `Description for Test Warehouse ${index}`,
-  };
-}
+export const dataFactory = {
+  createScenarioScope(label: string): string {
+    return buildScenarioScope(label);
+  },
 
-/**
- * Generate test product data
- */
-export function testProduct(index: number = 1): ProductData {
-  return {
-    name: `Test Product ${index}`,
-    price: 10.99 * index,
-  };
-}
+  createWarehouse(index: number = 1, scope?: string): WarehouseData {
+    const baseName = `Test Warehouse ${index}`;
 
-/**
- * Generate test position data
- * Note: Requires product and warehouse to exist
- */
-export function testPosition(
-  productName: string,
-  warehouseName: string,
-  amount: number = 10
-): PositionData {
-  return {
-    productName,
-    warehouseName,
-    amount,
-  };
-}
+    return {
+      name: appendScope(baseName, scope),
+      description: appendScope(`Description for ${baseName}`, scope),
+    };
+  },
 
-/**
- * Generate multiple test warehouses
- */
-export function testWarehouses(count: number): WarehouseData[] {
-  return Array.from({ length: count }, (_, i) => testWarehouse(i + 1));
-}
+  createProduct(index: number = 1, scope?: string): ProductData {
+    return {
+      name: appendScope(`Test Product ${index}`, scope),
+      price: 10.99 * index,
+    };
+  },
 
-/**
- * Generate multiple test products
- */
-export function testProducts(count: number): ProductData[] {
-  return Array.from({ length: count }, (_, i) => testProduct(i + 1));
-}
+  createPosition(
+    productName: string,
+    warehouseName: string,
+    amount: number = 10
+  ): PositionData {
+    return {
+      productName,
+      warehouseName,
+      amount,
+    };
+  },
+
+  createWarehouses(count: number, scope?: string): WarehouseData[] {
+    return Array.from({ length: count }, (_, i) => dataFactory.createWarehouse(i + 1, scope));
+  },
+
+  createProducts(count: number, scope?: string): ProductData[] {
+    return Array.from({ length: count }, (_, i) => dataFactory.createProduct(i + 1, scope));
+  },
+};
