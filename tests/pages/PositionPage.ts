@@ -18,19 +18,15 @@ export class PositionPage extends BasePage {
    * Fill position form
    */
   async fillPositionForm(productName: string, warehouseName: string, amount: number) {
-    // Wait for form to be ready
     await this.waitForElement('form-position');
-    
-    // Wait for dropdowns to have options loaded
+
     const productSelect = this.getByTestId('input-product-position');
     await productSelect.waitFor({ state: 'visible' });
-    
-    // Wait for product options to be available (at least one option besides "Select a product")
+
     await this.page.waitForFunction(
       (testId) => {
         const select = document.querySelector(`[data-testid="${testId}"]`) as HTMLSelectElement;
         if (!select) return false;
-        // Check if there are options with actual values (not just the placeholder)
         for (let i = 0; i < select.options.length; i++) {
           if (select.options[i].value && select.options[i].value !== '') {
             return true;
@@ -41,12 +37,11 @@ export class PositionPage extends BasePage {
       'input-product-position',
       { timeout: 10000 }
     );
-    
-    // Get all product options and find the one matching the name
+
     const productOptions = productSelect.locator('option');
     const productOptionsCount = await productOptions.count();
     let productValue = null;
-    
+
     for (let i = 0; i < productOptionsCount; i++) {
       const option = productOptions.nth(i);
       const text = await option.textContent();
@@ -55,31 +50,27 @@ export class PositionPage extends BasePage {
         break;
       }
     }
-    
+
     if (!productValue) {
       const allOptions = await productSelect.locator('option').allTextContents();
       throw new Error(`Product "${productName}" not found in dropdown. Available options: ${allOptions.join(', ')}`);
     }
-    
-    // Select product from dropdown by value
+
     await productSelect.selectOption(productValue);
-    
-    // Verify selection
+
     const selectedProduct = await productSelect.inputValue();
     if (selectedProduct !== productValue) {
       throw new Error(`Failed to select product "${productName}". Selected value: ${selectedProduct}, Expected: ${productValue}`);
     }
     await this.page.waitForTimeout(200);
 
-    // Wait for warehouse options to be available
     const warehouseSelect = this.getByTestId('input-warehouse-position');
     await warehouseSelect.waitFor({ state: 'visible' });
-    
+
     await this.page.waitForFunction(
       (testId) => {
         const select = document.querySelector(`[data-testid="${testId}"]`) as HTMLSelectElement;
         if (!select) return false;
-        // Check if there are options with actual values (not just the placeholder)
         for (let i = 0; i < select.options.length; i++) {
           if (select.options[i].value && select.options[i].value !== '') {
             return true;
@@ -90,12 +81,11 @@ export class PositionPage extends BasePage {
       'input-warehouse-position',
       { timeout: 10000 }
     );
-    
-    // Get all warehouse options and find the one matching the name
+
     const warehouseOptions = warehouseSelect.locator('option');
     const warehouseOptionsCount = await warehouseOptions.count();
     let warehouseValue = null;
-    
+
     for (let i = 0; i < warehouseOptionsCount; i++) {
       const option = warehouseOptions.nth(i);
       const text = await option.textContent();
@@ -104,23 +94,20 @@ export class PositionPage extends BasePage {
         break;
       }
     }
-    
+
     if (!warehouseValue) {
       const allOptions = await warehouseSelect.locator('option').allTextContents();
       throw new Error(`Warehouse "${warehouseName}" not found in dropdown. Available options: ${allOptions.join(', ')}`);
     }
-    
-    // Select warehouse from dropdown by value
+
     await warehouseSelect.selectOption(warehouseValue);
-    
-    // Verify selection
+
     const selectedWarehouse = await warehouseSelect.inputValue();
     if (selectedWarehouse !== warehouseValue) {
       throw new Error(`Failed to select warehouse "${warehouseName}". Selected value: ${selectedWarehouse}, Expected: ${warehouseValue}`);
     }
     await this.page.waitForTimeout(200);
 
-    // Fill amount - clear first in case editing
     const amountInput = this.getByTestId('input-amount-position');
     await amountInput.clear();
     await amountInput.fill(amount.toString());
@@ -131,11 +118,10 @@ export class PositionPage extends BasePage {
    */
   async savePosition() {
     await this.click('btn-save-position');
-    // Wait for form to disappear
     await this.page.waitForSelector('[data-testid="form-position"]', { state: 'hidden', timeout: 5000 }).catch(() => {
       // Form might already be hidden, that's okay
     });
-    await this.page.waitForTimeout(300); // Additional wait for list to update
+    await this.page.waitForTimeout(300);
   }
 
   /**
@@ -166,27 +152,77 @@ export class PositionPage extends BasePage {
    */
   async clickDeletePosition(id: string) {
     await this.click(`btn-delete-position-${id}`);
-    await this.page.waitForTimeout(500); // Wait for deletion
+    await this.page.waitForTimeout(500);
+  }
+
+  private async findPositionItemByValues(
+    productName: string,
+    warehouseName: string,
+    amount?: number
+  ): Promise<Locator | null> {
+    const items = this.getPositionItems();
+    const count = await items.count();
+
+    for (let i = 0; i < count; i++) {
+      const item = items.nth(i);
+      const values = item.locator('.position-value');
+      const productValue = (await values.nth(0).textContent())?.trim();
+      const warehouseValue = (await values.nth(1).textContent())?.trim();
+      const amountValue = (await values.nth(2).textContent())?.trim();
+      const amountMatches = amount === undefined || amountValue === amount.toString();
+
+      if (productValue === productName && warehouseValue === warehouseName && amountMatches) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  private async waitForPositionItemByValues(
+    productName: string,
+    warehouseName: string,
+    amount?: number,
+    timeoutMs: number = 3000
+  ): Promise<Locator | null> {
+    const deadline = Date.now() + timeoutMs;
+
+    do {
+      const item = await this.findPositionItemByValues(productName, warehouseName, amount);
+      if (item) {
+        return item;
+      }
+
+      await this.page.waitForTimeout(100);
+    } while (Date.now() < deadline);
+
+    return null;
+  }
+
+  private async waitForPositionToDisappear(
+    productName: string,
+    warehouseName: string,
+    timeoutMs: number = 3000
+  ): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+
+    do {
+      if ((await this.findPositionItemByValues(productName, warehouseName)) === null) {
+        return true;
+      }
+
+      await this.page.waitForTimeout(100);
+    } while (Date.now() < deadline);
+
+    return false;
   }
 
   /**
    * Check if position is visible by product name, warehouse name, and amount
    */
   async isPositionVisible(productName: string, warehouseName: string, amount: number): Promise<boolean> {
-    const items = this.getPositionItems();
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      const item = items.nth(i);
-      const text = await item.textContent();
-      if (
-        text?.includes(productName) &&
-        text?.includes(warehouseName) &&
-        text?.includes(amount.toString())
-      ) {
-        return true;
-      }
-    }
-    return false;
+    const item = await this.findPositionItemByValues(productName, warehouseName, amount);
+    return item !== null;
   }
 
   /**
@@ -198,20 +234,58 @@ export class PositionPage extends BasePage {
   }
 
   /**
-   * Get position ID by product and warehouse names (returns first match)
+   * Get position ID by product and warehouse names (returns exact match)
    */
   async getPositionIdByNames(productName: string, warehouseName: string): Promise<string | null> {
+    const item = await this.waitForPositionItemByValues(productName, warehouseName);
+    if (!item) {
+      return null;
+    }
+
+    const testId = await item.getAttribute('data-testid');
+    return testId?.replace('position-item-', '') || null;
+  }
+
+  /**
+   * Delete a position by exact product and warehouse names if it exists.
+   */
+  async deletePositionByNames(productName: string, warehouseName: string): Promise<boolean> {
+    const positionId = await this.getPositionIdByNames(productName, warehouseName);
+
+    if (!positionId) {
+      return false;
+    }
+
+    await this.acceptNextDialog();
+    await this.clickDeletePosition(positionId);
+    return await this.waitForPositionToDisappear(productName, warehouseName);
+  }
+
+  /**
+   * Count positions with exact values.
+   */
+  async countPositionsByValues(productName: string, warehouseName: string, amount: number): Promise<number> {
     const items = this.getPositionItems();
     const count = await items.count();
+    let matches = 0;
+
     for (let i = 0; i < count; i++) {
       const item = items.nth(i);
-      const text = await item.textContent();
-      if (text?.includes(productName) && text?.includes(warehouseName)) {
-        const testId = await item.getAttribute('data-testid');
-        return testId?.replace('position-item-', '') || null;
+      const values = item.locator('.position-value');
+      const productValue = (await values.nth(0).textContent())?.trim();
+      const warehouseValue = (await values.nth(1).textContent())?.trim();
+      const amountValue = (await values.nth(2).textContent())?.trim();
+
+      if (
+        productValue === productName &&
+        warehouseValue === warehouseName &&
+        amountValue === amount.toString()
+      ) {
+        matches += 1;
       }
     }
-    return null;
+
+    return matches;
   }
 
   /**

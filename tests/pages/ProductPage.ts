@@ -1,6 +1,8 @@
 import { BasePage } from './BasePage';
 import { Page, Locator } from '@playwright/test';
 
+const escapeForRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export class ProductPage extends BasePage {
   constructor(page: Page) {
     super(page);
@@ -67,38 +69,66 @@ export class ProductPage extends BasePage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  private getProductItemLocator(name: string): Locator {
+    const exactName = new RegExp(`^${escapeForRegex(name)}$`);
+
+    return this.getProductItems().filter({
+      has: this.page.locator('.product-name', { hasText: exactName }),
+    });
+  }
+
+  private async waitForProductItemByName(name: string, timeoutMs: number = 3000): Promise<Locator | null> {
+    const deadline = Date.now() + timeoutMs;
+
+    do {
+      const locator = this.getProductItemLocator(name);
+      if (await locator.count()) {
+        return locator.first();
+      }
+
+      await this.page.waitForTimeout(100);
+    } while (Date.now() < deadline);
+
+    return null;
+  }
+
+  private async waitForProductToDisappear(name: string, timeoutMs: number = 3000): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+
+    do {
+      if ((await this.getProductItemLocator(name).count()) === 0) {
+        return true;
+      }
+
+      await this.page.waitForTimeout(100);
+    } while (Date.now() < deadline);
+
+    return false;
+  }
+
   /**
    * Check if product is visible by name
    */
   async isProductVisible(name: string): Promise<boolean> {
-    const items = this.getProductItems();
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      const item = items.nth(i);
-      const text = await item.textContent();
-      if (text?.includes(name)) {
-        return true;
-      }
-    }
-    return false;
+    return (await this.getProductItemLocator(name).count()) > 0;
   }
 
   /**
    * Get product price by name
    */
   async getProductPrice(name: string): Promise<number | null> {
-    const items = this.getProductItems();
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      const item = items.nth(i);
-      const text = await item.textContent();
-      if (text?.includes(name)) {
-        const priceMatch = text.match(/\$(\d+\.?\d*)/);
-        if (priceMatch) {
-          return parseFloat(priceMatch[1]);
-        }
-      }
+    const item = await this.waitForProductItemByName(name);
+    if (!item) {
+      return null;
     }
+
+    const priceText = (await item.locator('.product-price').textContent())?.trim() || '';
+    const priceMatch = priceText.match(/\$(\d+\.?\d*)/);
+
+    if (priceMatch) {
+      return parseFloat(priceMatch[1]);
+    }
+
     return null;
   }
 
@@ -111,20 +141,38 @@ export class ProductPage extends BasePage {
   }
 
   /**
-   * Get product ID by name (returns first match)
+   * Get product ID by name (returns exact match)
    */
   async getProductIdByName(name: string): Promise<string | null> {
-    const items = this.getProductItems();
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      const item = items.nth(i);
-      const text = await item.textContent();
-      if (text?.includes(name)) {
-        const testId = await item.getAttribute('data-testid');
-        return testId?.replace('product-item-', '') || null;
-      }
+    const item = await this.waitForProductItemByName(name);
+    if (!item) {
+      return null;
     }
-    return null;
+
+    const testId = await item.getAttribute('data-testid');
+    return testId?.replace('product-item-', '') || null;
+  }
+
+  /**
+   * Delete a product by exact visible name if it exists.
+   */
+  async deleteProductByName(name: string): Promise<boolean> {
+    const productId = await this.getProductIdByName(name);
+
+    if (!productId) {
+      return false;
+    }
+
+    await this.acceptNextDialog();
+    await this.clickDeleteProduct(productId);
+    return await this.waitForProductToDisappear(name);
+  }
+
+  /**
+   * Count products with exact name.
+   */
+  async countProductsByName(name: string): Promise<number> {
+    return await this.getProductItemLocator(name).count();
   }
 
   /**

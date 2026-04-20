@@ -1,6 +1,8 @@
 import { BasePage } from './BasePage';
 import { Page, Locator } from '@playwright/test';
 
+const escapeForRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export class WarehousePage extends BasePage {
   constructor(page: Page) {
     super(page);
@@ -19,9 +21,7 @@ export class WarehousePage extends BasePage {
    */
   async fillWarehouseForm(name: string, description: string = '') {
     await this.fillInput('input-name-warehouse', name);
-    if (description) {
-      await this.fillInput('input-description-warehouse', description);
-    }
+    await this.fillInput('input-description-warehouse', description);
   }
 
   /**
@@ -69,20 +69,48 @@ export class WarehousePage extends BasePage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  private getWarehouseItemLocator(name: string): Locator {
+    const exactName = new RegExp(`^${escapeForRegex(name)}$`);
+
+    return this.getWarehouseItems().filter({
+      has: this.page.locator('.warehouse-name', { hasText: exactName }),
+    });
+  }
+
+  private async waitForWarehouseItemByName(name: string, timeoutMs: number = 3000): Promise<Locator | null> {
+    const deadline = Date.now() + timeoutMs;
+
+    do {
+      const locator = this.getWarehouseItemLocator(name);
+      if (await locator.count()) {
+        return locator.first();
+      }
+
+      await this.page.waitForTimeout(100);
+    } while (Date.now() < deadline);
+
+    return null;
+  }
+
+  private async waitForWarehouseToDisappear(name: string, timeoutMs: number = 3000): Promise<boolean> {
+    const deadline = Date.now() + timeoutMs;
+
+    do {
+      if ((await this.getWarehouseItemLocator(name).count()) === 0) {
+        return true;
+      }
+
+      await this.page.waitForTimeout(100);
+    } while (Date.now() < deadline);
+
+    return false;
+  }
+
   /**
    * Check if warehouse is visible by name
    */
   async isWarehouseVisible(name: string): Promise<boolean> {
-    const items = this.getWarehouseItems();
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      const item = items.nth(i);
-      const text = await item.textContent();
-      if (text?.includes(name)) {
-        return true;
-      }
-    }
-    return false;
+    return (await this.getWarehouseItemLocator(name).count()) > 0;
   }
 
   /**
@@ -94,20 +122,55 @@ export class WarehousePage extends BasePage {
   }
 
   /**
-   * Get warehouse ID by name (returns first match)
+   * Get warehouse ID by name (returns exact match)
    */
   async getWarehouseIdByName(name: string): Promise<string | null> {
-    const items = this.getWarehouseItems();
-    const count = await items.count();
-    for (let i = 0; i < count; i++) {
-      const item = items.nth(i);
-      const text = await item.textContent();
-      if (text?.includes(name)) {
-        const testId = await item.getAttribute('data-testid');
-        return testId?.replace('warehouse-item-', '') || null;
-      }
+    const item = await this.waitForWarehouseItemByName(name);
+    if (!item) {
+      return null;
     }
-    return null;
+
+    const testId = await item.getAttribute('data-testid');
+    return testId?.replace('warehouse-item-', '') || null;
+  }
+
+  /**
+   * Delete a warehouse by exact visible name if it exists.
+   */
+  async deleteWarehouseByName(name: string): Promise<boolean> {
+    const warehouseId = await this.getWarehouseIdByName(name);
+
+    if (!warehouseId) {
+      return false;
+    }
+
+    await this.acceptNextDialog();
+    await this.clickDeleteWarehouse(warehouseId);
+    return await this.waitForWarehouseToDisappear(name);
+  }
+
+  /**
+   * Get warehouse description by exact name.
+   */
+  async getWarehouseDescription(name: string): Promise<string | null> {
+    const item = await this.waitForWarehouseItemByName(name);
+    if (!item) {
+      return null;
+    }
+
+    const description = item.locator('.warehouse-description');
+    if (await description.count() === 0) {
+      return '';
+    }
+
+    return (await description.textContent())?.trim() || '';
+  }
+
+  /**
+   * Count warehouses with exact name.
+   */
+  async countWarehousesByName(name: string): Promise<number> {
+    return await this.getWarehouseItemLocator(name).count();
   }
 
   /**

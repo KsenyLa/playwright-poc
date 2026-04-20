@@ -5,24 +5,32 @@ import { Pool } from 'pg'
 import { createApp } from '../src/app.js'
 
 const dbUrl = process.env.DATABASE_URL
-const TEST_RESET_TOKEN = 'local-e2e-reset'
 
 if (!dbUrl) {
   test('api tests skipped without DATABASE_URL', { skip: true }, () => {})
 } else {
-  process.env.ALLOW_TEST_RESET = 'true'
-
   const db = new Pool({ connectionString: dbUrl })
   const app = createApp({ db })
+
+  const resetTables = async () => {
+    await db.query('BEGIN')
+    try {
+      await db.query('DELETE FROM positions')
+      await db.query('DELETE FROM products')
+      await db.query('DELETE FROM warehouses')
+      await db.query('COMMIT')
+    } catch (error) {
+      await db.query('ROLLBACK')
+      throw error
+    }
+  }
 
   test.after(async () => {
     await db.end()
   })
 
   test.beforeEach(async () => {
-    await request(app)
-      .delete('/test/reset')
-      .set('x-test-reset-token', TEST_RESET_TOKEN)
+    await resetTables()
   })
 
   test('GET /health', async () => {

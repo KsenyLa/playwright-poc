@@ -19,6 +19,8 @@ A monorepo POC for warehouse CRUD operations with:
 - `apps/api` - backend API (`src/`, `db/init`, `tests/`)
 - `tests` - Playwright specs and POM helpers
 
+Playwright E2E runs create and clean up their own unique data through the UI, so the suite does not depend on a backend reset endpoint.
+
 ## API Endpoints
 
 - `GET /health`
@@ -29,130 +31,138 @@ A monorepo POC for warehouse CRUD operations with:
 - `GET/POST /positions`
 - `PUT/DELETE /positions/:id`
 - `POST /migration/import-local`
-- `DELETE /test/reset` (test-only, available for local E2E via test reset token)
 
 Delete behavior:
-- Deleting a warehouse/product that is referenced by positions returns `409`.
+- Deleting a warehouse or product that is referenced by positions returns `409`.
 
 ## Database Bootstrap and Seed Data
 
 Docker Compose mounts SQL init scripts from `apps/api/db/init` into Postgres:
 - `01_schema.sql` creates tables and constraints.
-- `02_seed.sql` inserts starter warehouses/products/positions.
+- `02_seed.sql` inserts starter warehouses, products, and positions.
 
 Important:
-- Postgres init scripts run only when the data volume is created the first time.
-- To re-run bootstrap scripts, use:
+- Postgres init scripts run only when the data volume is created for the first time.
+- To rerun bootstrap scripts from scratch, recreate the volume.
 
+## Start Database in Docker
+
+Run these commands from the project root:
+
+Start DB:
+```bash
+docker compose up -d
+```
+
+Stop DB:
+```bash
+docker compose down
+```
+
+Reset DB and rerun schema + seed:
 ```bash
 docker compose down -v && docker compose up -d
 ```
 
-## Start Database in Docker
+Useful checks:
 
-1. Ensure Docker Desktop is running.
-2. From the project root, start Postgres:
-
-```bash
-docker compose up -d
-```
-Starts the Postgres container in detached mode.
-
-3. Confirm container is healthy:
-
+See container status:
 ```bash
 docker compose ps
 ```
 
-4. Optional: watch DB startup logs:
-
+See Postgres logs:
 ```bash
 docker compose logs -f postgres
 ```
 
-5. Stop the database:
-
-```bash
-docker compose down
-```
-Stops and removes the running Docker Compose containers.
-
-6. Recreate DB volume and rerun schema + seed scripts:
-
-```bash
-docker compose down -v && docker compose up -d
-```
-Removes containers and volumes, then starts Postgres again so bootstrap SQL runs from scratch.
-
 ## Setup
 
-1. Install dependencies
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Copy env values
+2. Copy env values:
 
 ```bash
 cp .env.example .env
 ```
 
-3. Start Postgres (with schema + seed bootstrap on first run)
+3. Start Postgres:
 
 ```bash
 docker compose up -d
 ```
 
-## Run
+## Run the App
 
-Run both backend + frontend:
+Start frontend and backend together:
 
 ```bash
-npm run dev
+npm run server
 ```
 
-Or separately:
+Start frontend only:
 
 ```bash
-npm run dev:api
-npm run dev:web
+npm run frontend
+```
+
+Start backend only:
+
+```bash
+npm run backend
 ```
 
 Frontend: `http://localhost:5173`
 API: `http://localhost:3001`
 
-`npm run dev:api` auto-loads env values from the root `.env`.
+`npm run backend` loads env values from the root `.env`.
 
 ## Data Source
 
-The web app now reads and writes data only through the backend API (DB-backed).
+The web app reads and writes data through the backend API and database.
 Local browser storage is not used for app data anymore.
-`POST /migration/import-local` is available as an optional manual migration endpoint.
+`POST /migration/import-local` remains available as an optional manual migration endpoint.
 
-## Testing
+## Tests
 
-### API tests
+Run backend API tests:
 
 ```bash
-npm run test:api
+npm run test:backend
 ```
 
-Requires `DATABASE_URL` and an initialized Postgres DB.
+This runs the backend test suite from `apps/api/tests`.
+It requires `DATABASE_URL` and an initialized Postgres DB.
 
-### Playwright E2E tests
+Run Playwright E2E tests:
 
 ```bash
-npm run test
+npm run e2e
 ```
 
 Playwright starts:
-- API (`npm run dev:api`) and waits for `/health`
-- Web (`npm run dev:web`)
+- API with `npm run backend:start`
+- Web with `npm run frontend`
 
-The E2E suite currently runs with a single Playwright worker because tests share one backend and one database.
+The CRUD E2E specs run sequentially inside each spec file, and different spec files can run in parallel.
 
-To open the HTML Playwright report in a browser, use:
+Open Playwright UI mode:
+
+```bash
+npm run e2e:ui
+```
+
+Run Playwright headed:
+
+```bash
+npm run e2e:headed
+```
+
+Open the HTML Playwright report:
 
 ```bash
 npx playwright show-report
@@ -163,22 +173,22 @@ Report URL:
 
 ## Scripts
 
-- `npm run dev`
-- `npm run dev:web`
-- `npm run dev:api`
-- `npm run build`
-- `npm run preview`
-- `npm run test:e2e`
-- `npm run test:api`
-- `docker compose up -d`
-- `docker compose down`
-- `docker compose down -v && docker compose up -d`
+- `npm run server` - start frontend and backend together
+- `npm run frontend` - start frontend only
+- `npm run backend` - start backend only in watch mode
+- `npm run backend:start` - start backend once without watch mode
+- `npm run e2e` - run Playwright end-to-end tests
+- `npm run e2e:ui` - open Playwright UI mode
+- `npm run e2e:headed` - run Playwright in headed mode
+- `npm run test:backend` - run backend API tests
+- `npm run build:web` - build frontend
+- `npm run preview:web` - preview frontend build
 
 ## Troubleshooting: "Failed to fetch" in Frontend
 
 If the UI shows `Failed to fetch` while backend and DB are running, it is usually a CORS origin mismatch.
 
-`http://localhost:5173` and `http://127.0.0.1:5173` are different origins.  
+`http://localhost:5173` and `http://127.0.0.1:5173` are different origins.
 If frontend runs on `127.0.0.1`, backend must allow that origin too.
 
 Recommended backend env value:
@@ -208,4 +218,4 @@ DATABASE_URL=postgresql://warehouse:warehouse@localhost:5432/warehouse_crm
 4. Confirm Postgres is running:
    - `docker compose ps`
 
-If DB is unreachable/misconfigured, API prints startup error in terminal and exits with a clear message.
+If DB is unreachable or misconfigured, API prints a startup error in the terminal and exits with a clear message.
