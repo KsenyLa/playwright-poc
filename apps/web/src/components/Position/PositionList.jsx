@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { positionStorage, warehouseStorage, productStorage } from '../../services/storage'
-import PositionForm from './PositionForm'
+import ListControls from '../ListControls/ListControls'
 import PositionItem from './PositionItem'
 import './PositionList.css'
 
 function PositionList() {
+  const navigate = useNavigate()
   const [positions, setPositions] = useState([])
   const [warehouses, setWarehouses] = useState([])
   const [products, setProducts] = useState([])
   const [loadError, setLoadError] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [editingPosition, setEditingPosition] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortDirection, setSortDirection] = useState('asc')
+  const [selectedWarehouses, setSelectedWarehouses] = useState([])
 
   const loadData = async () => {
     try {
@@ -35,30 +38,11 @@ function PositionList() {
   }, [])
 
   const handleAdd = () => {
-    setEditingPosition(null)
-    setShowForm(true)
+    navigate('/positions/create')
   }
 
   const handleEdit = (position) => {
-    setEditingPosition(position)
-    setShowForm(true)
-  }
-
-  const handleSave = async (positionData) => {
-    try {
-      if (editingPosition) {
-        await positionStorage.update(editingPosition.id, positionData)
-      } else {
-        await positionStorage.create(positionData)
-      }
-
-      await loadData()
-      setShowForm(false)
-      setEditingPosition(null)
-    } catch (error) {
-      console.error('Failed to save position', error)
-      window.alert(error.message || 'Failed to save position')
-    }
+    navigate(`/positions/edit/${position.id}`)
   }
 
   const handleDelete = async (id) => {
@@ -75,11 +59,6 @@ function PositionList() {
     }
   }
 
-  const handleCancel = () => {
-    setShowForm(false)
-    setEditingPosition(null)
-  }
-
   const getPositionWithNames = (position) => {
     const product = products.find((candidate) => candidate.id === position.productId)
     const warehouse = warehouses.find((candidate) => candidate.id === position.warehouseId)
@@ -91,29 +70,83 @@ function PositionList() {
     }
   }
 
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+  const warehouseOptions = [...warehouses]
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((warehouse) => ({
+      value: String(warehouse.id),
+      label: warehouse.name
+    }))
+  const selectedWarehouseOptions = warehouseOptions.filter((warehouse) =>
+    selectedWarehouses.includes(warehouse.value)
+  )
+
+  const filteredPositions = positions
+    .map((position) => getPositionWithNames(position))
+    .filter((position) => {
+      const matchesSearch = position.productName
+        .toLowerCase()
+        .includes(normalizedSearchTerm)
+      const matchesWarehouse =
+        selectedWarehouses.length === 0 ||
+        selectedWarehouses.includes(String(position.warehouseId))
+
+      return matchesSearch && matchesWarehouse
+    })
+    .sort((left, right) => {
+      const comparison = left.productName.localeCompare(right.productName)
+      return sortDirection === 'asc' ? comparison : comparison * -1
+    })
+
+  const hasActiveFilters = normalizedSearchTerm.length > 0 || selectedWarehouses.length > 0
+
   return (
     <div className="position-list-container">
       <div className="page-header">
         <h2 data-testid="page-title-positions">Position Management</h2>
-        {!showForm && (
-          <button
-            onClick={handleAdd}
-            className="btn-primary"
-            data-testid="btn-add-position"
-          >
-            Add Position
-          </button>
-        )}
+        <button
+          onClick={handleAdd}
+          className="btn-primary"
+          data-testid="btn-add-position"
+        >
+          Add Position
+        </button>
       </div>
 
-      {showForm && (
-        <PositionForm
-          position={editingPosition}
-          warehouses={warehouses}
-          products={products}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
+      <ListControls
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search positions by product name"
+        sortValue={sortDirection}
+        onSortChange={setSortDirection}
+        filterValue={selectedWarehouses}
+        onFilterChange={setSelectedWarehouses}
+        filterOptions={warehouseOptions}
+        filterLabel="Warehouse"
+        filterPlaceholder="All warehouses"
+        filterMode="multiple"
+        testIdPrefix="position-controls"
+      />
+
+      {selectedWarehouseOptions.length > 0 && (
+        <div className="selected-filters" data-testid="selected-position-warehouses">
+          {selectedWarehouseOptions.map((warehouse) => (
+            <button
+              key={warehouse.value}
+              type="button"
+              className="selected-filter-chip"
+              onClick={() =>
+                setSelectedWarehouses((currentValues) =>
+                  currentValues.filter((value) => value !== warehouse.value)
+                )
+              }
+              data-testid={`selected-position-warehouse-${warehouse.value}`}
+            >
+              <span>{warehouse.label}</span>
+              <span aria-hidden="true">x</span>
+            </button>
+          ))}
+        </div>
       )}
 
       <div className="list-container" data-testid="list-positions">
@@ -122,20 +155,23 @@ function PositionList() {
             {loadError}
           </p>
         )}
-        {positions.length === 0 ? (
+        {!loadError && positions.length === 0 ? (
           <p className="empty-message">No positions found. Add your first position!</p>
+        ) : !loadError && filteredPositions.length === 0 ? (
+          <p className="empty-message">
+            {hasActiveFilters
+              ? 'No positions match your current search and filters.'
+              : 'No positions available.'}
+          </p>
         ) : (
-          positions.map((position) => {
-            const positionWithNames = getPositionWithNames(position)
-            return (
-              <PositionItem
-                key={position.id}
-                position={positionWithNames}
-                onEdit={() => handleEdit(position)}
-                onDelete={handleDelete}
-              />
-            )
-          })
+          filteredPositions.map((position) => (
+            <PositionItem
+              key={position.id}
+              position={position}
+              onEdit={() => handleEdit(position)}
+              onDelete={handleDelete}
+            />
+          ))
         )}
       </div>
     </div>

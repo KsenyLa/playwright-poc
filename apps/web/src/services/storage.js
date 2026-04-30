@@ -4,7 +4,7 @@ export const warehouseStorage = {
   getAll: () => apiRequest('/warehouses'),
   getById: async (id) => {
     const warehouses = await apiRequest('/warehouses')
-    return warehouses.find((warehouse) => warehouse.id === id) || null
+    return warehouses.find((warehouse) => String(warehouse.id) === String(id)) || null
   },
   create: (warehouse) => apiRequest('/warehouses', {
     method: 'POST',
@@ -23,7 +23,7 @@ export const productStorage = {
   getAll: () => apiRequest('/products'),
   getById: async (id) => {
     const products = await apiRequest('/products')
-    return products.find((product) => product.id === id) || null
+    return products.find((product) => String(product.id) === String(id)) || null
   },
   create: (product) => apiRequest('/products', {
     method: 'POST',
@@ -42,7 +42,7 @@ export const positionStorage = {
   getAll: () => apiRequest('/positions'),
   getById: async (id) => {
     const positions = await apiRequest('/positions')
-    return positions.find((position) => position.id === id) || null
+    return positions.find((position) => String(position.id) === String(id)) || null
   },
   create: (position) => apiRequest('/positions', {
     method: 'POST',

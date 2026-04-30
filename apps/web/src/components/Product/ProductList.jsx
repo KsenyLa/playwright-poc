@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { productStorage } from '../../services/storage'
-import ProductForm from './ProductForm'
+import ListControls from '../ListControls/ListControls'
 import ProductItem from './ProductItem'
 import './ProductList.css'
 
 function ProductList() {
+  const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [loadError, setLoadError] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortDirection, setSortDirection] = useState('asc')
 
   const loadProducts = async () => {
     try {
@@ -26,30 +28,11 @@ function ProductList() {
   }, [])
 
   const handleAdd = () => {
-    setEditingProduct(null)
-    setShowForm(true)
+    navigate('/products/create')
   }
 
   const handleEdit = (product) => {
-    setEditingProduct(product)
-    setShowForm(true)
-  }
-
-  const handleSave = async (productData) => {
-    try {
-      if (editingProduct) {
-        await productStorage.update(editingProduct.id, productData)
-      } else {
-        await productStorage.create(productData)
-      }
-
-      await loadProducts()
-      setShowForm(false)
-      setEditingProduct(null)
-    } catch (error) {
-      console.error('Failed to save product', error)
-      window.alert(error.message || 'Failed to save product')
-    }
+    navigate(`/products/edit/${product.id}`)
   }
 
   const handleDelete = async (id) => {
@@ -66,33 +49,37 @@ function ProductList() {
     }
   }
 
-  const handleCancel = () => {
-    setShowForm(false)
-    setEditingProduct(null)
-  }
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+  const filteredProducts = [...products]
+    .filter((product) => product.name.toLowerCase().includes(normalizedSearchTerm))
+    .sort((left, right) => {
+      const comparison = left.name.localeCompare(right.name)
+      return sortDirection === 'asc' ? comparison : comparison * -1
+    })
+
+  const hasActiveFilters = normalizedSearchTerm.length > 0
 
   return (
     <div className="product-list-container">
       <div className="page-header">
         <h2 data-testid="page-title-products">Product Management</h2>
-        {!showForm && (
-          <button
-            onClick={handleAdd}
-            className="btn-primary"
-            data-testid="btn-add-product"
-          >
-            Add Product
-          </button>
-        )}
+        <button
+          onClick={handleAdd}
+          className="btn-primary"
+          data-testid="btn-add-product"
+        >
+          Add Product
+        </button>
       </div>
 
-      {showForm && (
-        <ProductForm
-          product={editingProduct}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      )}
+      <ListControls
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search products by name"
+        sortValue={sortDirection}
+        onSortChange={setSortDirection}
+        testIdPrefix="product-controls"
+      />
 
       <div className="list-container" data-testid="list-products">
         {loadError && (
@@ -100,10 +87,16 @@ function ProductList() {
             {loadError}
           </p>
         )}
-        {products.length === 0 ? (
+        {!loadError && products.length === 0 ? (
           <p className="empty-message">No products found. Add your first product!</p>
+        ) : !loadError && filteredProducts.length === 0 ? (
+          <p className="empty-message">
+            {hasActiveFilters
+              ? 'No products match your current search.'
+              : 'No products available.'}
+          </p>
         ) : (
-          products.map((product) => (
+          filteredProducts.map((product) => (
             <ProductItem
               key={product.id}
               product={product}

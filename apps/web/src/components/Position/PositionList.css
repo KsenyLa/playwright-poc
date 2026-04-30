@@ -14,6 +14,27 @@
   color: #2c3e50;
 }
 
+.selected-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: -0.5rem 0 1.5rem;
+}
+
+.selected-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid #3498db;
+  border-radius: 999px;
+  background-color: #eaf4fb;
+  color: #21618c;
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
 .list-container {
   display: flex;
   flex-direction: column;

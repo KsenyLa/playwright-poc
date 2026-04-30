@@ -1,0 +1,112 @@
+.list-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #ffffff;
+  border: 1px solid #dfe6e9;
+  border-radius: 8px;
+}
+
+.list-control-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.list-control-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.list-control-input {
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  font-size: 1rem;
+  color: #2d3436;
+  background-color: #fff;
+  font-family: inherit;
+}
+
+.list-control-input:focus {
+  outline: 2px solid rgba(52, 152, 219, 0.2);
+  border-color: #3498db;
+}
+
+.list-control-multi-filter {
+  position: relative;
+}
+
+.list-control-multi-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #cfd8dc;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 1rem;
+  color: #2d3436;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.list-control-multi-trigger:focus {
+  outline: 2px solid rgba(52, 152, 219, 0.2);
+  border-color: #3498db;
+}
+
+.list-control-multi-arrow {
+  color: #7f8c8d;
+}
+
+.list-control-multi-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid #cfd8dc;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 12px 24px rgba(44, 62, 80, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.list-control-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.95rem;
+  color: #2d3436;
+}
+
+.list-control-checkbox input {
+  accent-color: #3498db;
+}
+
+.list-control-hint {
+  font-size: 0.95rem;
+  color: #7f8c8d;
+}
+
+@media (max-width: 640px) {
+  .list-controls {
+    padding: 0.9rem;
+  }
+
+  .list-control-multi-menu {
+    max-height: 200px;
+  }
+}

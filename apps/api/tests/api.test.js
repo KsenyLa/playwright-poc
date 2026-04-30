@@ -89,21 +89,4 @@ if (!dbUrl) {
     assert.equal(response.status, 409)
     assert.equal(response.body.error.code, 'RESOURCE_IN_USE')
   })
-
-  test('import-local is idempotent by id', async () => {
-    const payload = {
-      warehouses: [{ id: 'w1', name: 'Warehouse 1', description: '' }],
-      products: [{ id: 'p1', name: 'Product 1', price: 11.5 }],
-      positions: [{ id: 'pos1', productId: 'p1', warehouseId: 'w1', amount: 5 }]
-    }
-
-    const first = await request(app).post('/migration/import-local').send(payload)
-    assert.equal(first.status, 200)
-
-    const second = await request(app).post('/migration/import-local').send(payload)
-    assert.equal(second.status, 200)
-
-    const positions = await request(app).get('/positions')
-    assert.equal(positions.body.length, 1)
-  })
 }

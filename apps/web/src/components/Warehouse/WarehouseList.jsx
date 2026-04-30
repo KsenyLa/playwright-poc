@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { warehouseStorage } from '../../services/storage'
-import WarehouseForm from './WarehouseForm'
+import ListControls from '../ListControls/ListControls'
 import WarehouseItem from './WarehouseItem'
 import './WarehouseList.css'
 
 function WarehouseList() {
+  const navigate = useNavigate()
   const [warehouses, setWarehouses] = useState([])
   const [loadError, setLoadError] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [editingWarehouse, setEditingWarehouse] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortDirection, setSortDirection] = useState('asc')
 
   const loadWarehouses = async () => {
     try {
@@ -26,30 +28,11 @@ function WarehouseList() {
   }, [])
 
   const handleAdd = () => {
-    setEditingWarehouse(null)
-    setShowForm(true)
+    navigate('/warehouses/create')
   }
 
   const handleEdit = (warehouse) => {
-    setEditingWarehouse(warehouse)
-    setShowForm(true)
-  }
-
-  const handleSave = async (warehouseData) => {
-    try {
-      if (editingWarehouse) {
-        await warehouseStorage.update(editingWarehouse.id, warehouseData)
-      } else {
-        await warehouseStorage.create(warehouseData)
-      }
-
-      await loadWarehouses()
-      setShowForm(false)
-      setEditingWarehouse(null)
-    } catch (error) {
-      console.error('Failed to save warehouse', error)
-      window.alert(error.message || 'Failed to save warehouse')
-    }
+    navigate(`/warehouses/edit/${warehouse.id}`)
   }
 
   const handleDelete = async (id) => {
@@ -66,33 +49,37 @@ function WarehouseList() {
     }
   }
 
-  const handleCancel = () => {
-    setShowForm(false)
-    setEditingWarehouse(null)
-  }
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase()
+  const filteredWarehouses = [...warehouses]
+    .filter((warehouse) => warehouse.name.toLowerCase().includes(normalizedSearchTerm))
+    .sort((left, right) => {
+      const comparison = left.name.localeCompare(right.name)
+      return sortDirection === 'asc' ? comparison : comparison * -1
+    })
+
+  const hasActiveFilters = normalizedSearchTerm.length > 0
 
   return (
     <div className="warehouse-list-container">
       <div className="page-header">
         <h2 data-testid="page-title-warehouses">Warehouse Management</h2>
-        {!showForm && (
-          <button
-            onClick={handleAdd}
-            className="btn-primary"
-            data-testid="btn-add-warehouse"
-          >
-            Add Warehouse
-          </button>
-        )}
+        <button
+          onClick={handleAdd}
+          className="btn-primary"
+          data-testid="btn-add-warehouse"
+        >
+          Add Warehouse
+        </button>
       </div>
 
-      {showForm && (
-        <WarehouseForm
-          warehouse={editingWarehouse}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      )}
+      <ListControls
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search warehouses by name"
+        sortValue={sortDirection}
+        onSortChange={setSortDirection}
+        testIdPrefix="warehouse-controls"
+      />
 
       <div className="list-container" data-testid="list-warehouses">
         {loadError && (
@@ -100,10 +87,16 @@ function WarehouseList() {
             {loadError}
           </p>
         )}
-        {warehouses.length === 0 ? (
+        {!loadError && warehouses.length === 0 ? (
           <p className="empty-message">No warehouses found. Add your first warehouse!</p>
+        ) : !loadError && filteredWarehouses.length === 0 ? (
+          <p className="empty-message">
+            {hasActiveFilters
+              ? 'No warehouses match your current search.'
+              : 'No warehouses available.'}
+          </p>
         ) : (
-          warehouses.map((warehouse) => (
+          filteredWarehouses.map((warehouse) => (
             <WarehouseItem
               key={warehouse.id}
               warehouse={warehouse}

@@ -11,6 +11,7 @@ export class PositionPage extends BasePage {
    */
   async clickAddPosition() {
     await this.click('btn-add-position');
+    await this.page.waitForURL('**/positions/create');
     await this.waitForElement('form-position');
   }
 
@@ -118,10 +119,8 @@ export class PositionPage extends BasePage {
    */
   async savePosition() {
     await this.click('btn-save-position');
-    await this.page.waitForSelector('[data-testid="form-position"]', { state: 'hidden', timeout: 5000 }).catch(() => {
-      // Form might already be hidden, that's okay
-    });
-    await this.page.waitForTimeout(300);
+    await this.page.waitForURL('**/positions');
+    await this.waitForElement('page-title-positions');
   }
 
   /**
@@ -129,6 +128,7 @@ export class PositionPage extends BasePage {
    */
   async cancelPositionForm() {
     await this.click('btn-cancel-position');
+    await this.page.waitForURL('**/positions');
   }
 
   /**
@@ -143,6 +143,7 @@ export class PositionPage extends BasePage {
    */
   async clickEditPosition(id: string) {
     await this.click(`btn-edit-position-${id}`);
+    await this.page.waitForURL(`**/positions/edit/${id}`);
     await this.waitForElement('form-position');
   }
 

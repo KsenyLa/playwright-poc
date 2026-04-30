@@ -3,6 +3,9 @@ import './Navigation.css'
 
 function Navigation() {
   const location = useLocation()
+  const isWarehousesActive = location.pathname.startsWith('/warehouses')
+  const isProductsActive = location.pathname.startsWith('/products')
+  const isPositionsActive = location.pathname.startsWith('/positions')
 
   return (
     <nav className="navigation" data-testid="navigation">
@@ -12,7 +15,7 @@ function Navigation() {
           <li>
             <Link
               to="/warehouses"
-              className={location.pathname === '/warehouses' ? 'active' : ''}
+              className={isWarehousesActive ? 'active' : ''}
               data-testid="nav-link-warehouses"
             >
               Warehouses
@@ -21,7 +24,7 @@ function Navigation() {
           <li>
             <Link
               to="/products"
-              className={location.pathname === '/products' ? 'active' : ''}
+              className={isProductsActive ? 'active' : ''}
               data-testid="nav-link-products"
             >
               Products
@@ -30,7 +33,7 @@ function Navigation() {
           <li>
             <Link
               to="/positions"
-              className={location.pathname === '/positions' ? 'active' : ''}
+              className={isPositionsActive ? 'active' : ''}
               data-testid="nav-link-positions"
             >
               Positions

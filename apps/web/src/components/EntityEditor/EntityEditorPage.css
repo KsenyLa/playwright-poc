@@ -1,0 +1,45 @@
+.entity-editor-page {
+  width: 100%;
+  max-width: 840px;
+  margin: 0 auto;
+}
+
+.entity-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.entity-editor-header h2 {
+  margin: 0;
+  color: #2c3e50;
+}
+
+.entity-editor-kicker {
+  margin-bottom: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3498db;
+}
+
+.entity-editor-state {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  background-color: white;
+  color: #2d3436;
+}
+
+.entity-editor-state.error {
+  color: #c0392b;
+}
+
+@media (max-width: 640px) {
+  .entity-editor-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

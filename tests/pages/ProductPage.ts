@@ -13,6 +13,7 @@ export class ProductPage extends BasePage {
    */
   async clickAddProduct() {
     await this.click('btn-add-product');
+    await this.page.waitForURL('**/products/create');
     await this.waitForElement('form-product');
   }
 
@@ -29,12 +30,7 @@ export class ProductPage extends BasePage {
    */
   async saveProduct() {
     await this.click('btn-save-product');
-    await this.page.waitForSelector('[data-testid="form-product"]', {
-      state: 'hidden',
-      timeout: 5000,
-    }).catch(() => {
-      // Form might already be hidden by the time we start waiting.
-    });
+    await this.page.waitForURL('**/products');
     await this.page.waitForLoadState('networkidle');
   }
 
@@ -43,6 +39,7 @@ export class ProductPage extends BasePage {
    */
   async cancelProductForm() {
     await this.click('btn-cancel-product');
+    await this.page.waitForURL('**/products');
   }
 
   /**
@@ -57,6 +54,7 @@ export class ProductPage extends BasePage {
    */
   async clickEditProduct(id: string) {
     await this.click(`btn-edit-product-${id}`);
+    await this.page.waitForURL(`**/products/edit/${id}`);
     await this.waitForElement('form-product');
   }
 
