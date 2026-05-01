@@ -29,9 +29,17 @@ export class WarehousePage extends BasePage {
    * Save warehouse form
    */
   async saveWarehouse() {
-    await this.click('btn-save-warehouse');
+    const saveMethod = this.page.url().includes('/warehouses/edit/') ? 'PUT' : 'POST';
+    const saveResponsePromise = this.waitForApiResponse(saveMethod, '/warehouses');
+    const listResponsePromise = this.waitForApiResponse('GET', '/warehouses');
+
+    await Promise.all([
+      saveResponsePromise,
+      this.click('btn-save-warehouse'),
+    ]);
     await this.page.waitForURL('**/warehouses');
-    await this.page.waitForLoadState('networkidle');
+    await this.waitForElement('list-warehouses');
+    await listResponsePromise;
   }
 
   /**
@@ -75,33 +83,29 @@ export class WarehousePage extends BasePage {
     });
   }
 
-  private async waitForWarehouseItemByName(name: string, timeoutMs: number = 3000): Promise<Locator | null> {
-    const deadline = Date.now() + timeoutMs;
+  private async waitForWarehouseItemByName(name: string, timeoutMs: number = 3000): Promise<Locator> {
+    const locator = this.getWarehouseItemLocator(name).first();
 
-    do {
-      const locator = this.getWarehouseItemLocator(name);
-      if (await locator.count()) {
-        return locator.first();
-      }
-
-      await this.page.waitForTimeout(100);
-    } while (Date.now() < deadline);
-
-    return null;
+    try {
+      await locator.waitFor({ state: 'visible', timeout: timeoutMs });
+      return locator;
+    } catch {
+      throw new Error(`Warehouse with name "${name}" was not visible within ${timeoutMs}ms`);
+    }
   }
 
-  private async waitForWarehouseToDisappear(name: string, timeoutMs: number = 3000): Promise<boolean> {
+  private async waitForWarehouseToDisappear(name: string, timeoutMs: number = 3000): Promise<void> {
     const deadline = Date.now() + timeoutMs;
 
     do {
       if ((await this.getWarehouseItemLocator(name).count()) === 0) {
-        return true;
+        return;
       }
 
       await this.page.waitForTimeout(100);
     } while (Date.now() < deadline);
 
-    return false;
+    throw new Error(`Warehouse with name "${name}" was still visible after ${timeoutMs}ms`);
   }
 
   /**
@@ -109,6 +113,14 @@ export class WarehousePage extends BasePage {
    */
   async isWarehouseVisible(name: string): Promise<boolean> {
     return (await this.getWarehouseItemLocator(name).count()) > 0;
+  }
+
+  /**
+   * Wait for a warehouse with exact name to appear.
+   */
+  async waitForWarehouseVisible(name: string, timeoutMs: number = 3000): Promise<boolean> {
+    await this.waitForWarehouseItemByName(name, timeoutMs);
+    return true;
   }
 
   /**
@@ -123,8 +135,11 @@ export class WarehousePage extends BasePage {
    * Get warehouse ID by name (returns exact match)
    */
   async getWarehouseIdByName(name: string): Promise<string | null> {
-    const item = await this.waitForWarehouseItemByName(name);
-    if (!item) {
+    let item: Locator;
+
+    try {
+      item = await this.waitForWarehouseItemByName(name);
+    } catch {
       return null;
     }
 
@@ -144,17 +159,20 @@ export class WarehousePage extends BasePage {
 
     await this.acceptNextDialog();
     await this.clickDeleteWarehouse(warehouseId);
-    return await this.waitForWarehouseToDisappear(name);
+    await this.waitForWarehouseToDisappear(name);
+    return true;
   }
 
   /**
    * Get warehouse description by exact name.
    */
   async getWarehouseDescription(name: string): Promise<string | null> {
-    const item = await this.waitForWarehouseItemByName(name);
-    if (!item) {
+    const itemCount = await this.getWarehouseItemLocator(name).count();
+    if (itemCount === 0) {
       return null;
     }
+
+    const item = this.getWarehouseItemLocator(name).first();
 
     const description = item.locator('.warehouse-description');
     if (await description.count() === 0) {

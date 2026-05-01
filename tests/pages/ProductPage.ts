@@ -29,9 +29,17 @@ export class ProductPage extends BasePage {
    * Save product form
    */
   async saveProduct() {
-    await this.click('btn-save-product');
+    const saveMethod = this.page.url().includes('/products/edit/') ? 'PUT' : 'POST';
+    const saveResponsePromise = this.waitForApiResponse(saveMethod, '/products');
+    const listResponsePromise = this.waitForApiResponse('GET', '/products');
+
+    await Promise.all([
+      saveResponsePromise,
+      this.click('btn-save-product'),
+    ]);
     await this.page.waitForURL('**/products');
-    await this.page.waitForLoadState('networkidle');
+    await this.waitForElement('list-products');
+    await listResponsePromise;
   }
 
   /**
@@ -75,33 +83,29 @@ export class ProductPage extends BasePage {
     });
   }
 
-  private async waitForProductItemByName(name: string, timeoutMs: number = 3000): Promise<Locator | null> {
-    const deadline = Date.now() + timeoutMs;
+  private async waitForProductItemByName(name: string, timeoutMs: number = 3000): Promise<Locator> {
+    const locator = this.getProductItemLocator(name).first();
 
-    do {
-      const locator = this.getProductItemLocator(name);
-      if (await locator.count()) {
-        return locator.first();
-      }
-
-      await this.page.waitForTimeout(100);
-    } while (Date.now() < deadline);
-
-    return null;
+    try {
+      await locator.waitFor({ state: 'visible', timeout: timeoutMs });
+      return locator;
+    } catch {
+      throw new Error(`Product with name "${name}" was not visible within ${timeoutMs}ms`);
+    }
   }
 
-  private async waitForProductToDisappear(name: string, timeoutMs: number = 3000): Promise<boolean> {
+  private async waitForProductToDisappear(name: string, timeoutMs: number = 3000): Promise<void> {
     const deadline = Date.now() + timeoutMs;
 
     do {
       if ((await this.getProductItemLocator(name).count()) === 0) {
-        return true;
+        return;
       }
 
       await this.page.waitForTimeout(100);
     } while (Date.now() < deadline);
 
-    return false;
+    throw new Error(`Product with name "${name}" was still visible after ${timeoutMs}ms`);
   }
 
   /**
@@ -112,13 +116,23 @@ export class ProductPage extends BasePage {
   }
 
   /**
+   * Wait for a product with exact name to appear.
+   */
+  async waitForProductVisible(name: string, timeoutMs: number = 3000): Promise<boolean> {
+    await this.waitForProductItemByName(name, timeoutMs);
+    return true;
+  }
+
+  /**
    * Get product price by name
    */
   async getProductPrice(name: string): Promise<number | null> {
-    const item = await this.waitForProductItemByName(name);
-    if (!item) {
+    const itemCount = await this.getProductItemLocator(name).count();
+    if (itemCount === 0) {
       return null;
     }
+
+    const item = this.getProductItemLocator(name).first();
 
     const priceText = (await item.locator('.product-price').textContent())?.trim() || '';
     const priceMatch = priceText.match(/\$(\d+\.?\d*)/);
@@ -142,8 +156,11 @@ export class ProductPage extends BasePage {
    * Get product ID by name (returns exact match)
    */
   async getProductIdByName(name: string): Promise<string | null> {
-    const item = await this.waitForProductItemByName(name);
-    if (!item) {
+    let item: Locator;
+
+    try {
+      item = await this.waitForProductItemByName(name);
+    } catch {
       return null;
     }
 
@@ -163,7 +180,8 @@ export class ProductPage extends BasePage {
 
     await this.acceptNextDialog();
     await this.clickDeleteProduct(productId);
-    return await this.waitForProductToDisappear(name);
+    await this.waitForProductToDisappear(name);
+    return true;
   }
 
   /**

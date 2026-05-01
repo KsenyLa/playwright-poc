@@ -52,14 +52,14 @@ test.describe('Product Management Tests', () => {
     await productPage.fillProductForm(product.name, product.price);
     await productPage.saveProduct();
 
-    expect(await productPage.isProductVisible(product.name)).toBe(true);
+    expect(await productPage.waitForProductVisible(product.name)).toBe(true);
     expect(await productPage.getProductPrice(product.name)).toBe(product.price);
     expect(await productPage.countProductsByName(product.name)).toBe(1);
 
     await productPage.page.reload();
     await navigationPage.waitForPageLoad();
 
-    expect(await productPage.isProductVisible(product.name)).toBe(true);
+    expect(await productPage.waitForProductVisible(product.name)).toBe(true);
     expect(await productPage.getProductPrice(product.name)).toBe(product.price);
   });
 
@@ -71,7 +71,7 @@ test.describe('Product Management Tests', () => {
     await productPage.fillProductForm(updatedProduct.name, updatedProduct.price);
     await productPage.saveProduct();
 
-    expect(await productPage.isProductVisible(updatedProduct.name)).toBe(true);
+    expect(await productPage.waitForProductVisible(updatedProduct.name)).toBe(true);
     expect(await productPage.getProductPrice(updatedProduct.name)).toBe(updatedProduct.price);
     expect(await productPage.isProductVisible(product.name)).toBe(false);
   });
@@ -85,7 +85,7 @@ test.describe('Product Management Tests', () => {
     await productPage.cancelProductForm();
 
     expect(await productPage.isProductVisible(draftProduct.name)).toBe(false);
-    expect(await productPage.isProductVisible(updatedProduct.name)).toBe(true);
+    expect(await productPage.waitForProductVisible(updatedProduct.name)).toBe(true);
     expect(await productPage.getProductPrice(updatedProduct.name)).toBe(updatedProduct.price);
   });
 

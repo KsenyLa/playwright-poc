@@ -54,13 +54,13 @@ test.describe('Position Management Tests', () => {
     await warehousePage.clickAddWarehouse();
     await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
     await warehousePage.saveWarehouse();
-    expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(true);
+    expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
 
     await navigationPage.navigateToProducts();
     await productPage.clickAddProduct();
     await productPage.fillProductForm(product.name, product.price);
     await productPage.saveProduct();
-    expect(await productPage.isProductVisible(product.name)).toBe(true);
+    expect(await productPage.waitForProductVisible(product.name)).toBe(true);
 
     await navigationPage.navigateToPositions();
     await positionPage.clickAddPosition();
@@ -83,7 +83,7 @@ test.describe('Position Management Tests', () => {
     await positionPage.savePosition();
 
     expect(
-      await positionPage.isPositionVisible(
+      await positionPage.waitForPositionVisible(
         originalPosition.productName,
         originalPosition.warehouseName,
         originalPosition.amount
@@ -101,7 +101,7 @@ test.describe('Position Management Tests', () => {
     await navigationPage.waitForPageLoad();
 
     expect(
-      await positionPage.isPositionVisible(
+      await positionPage.waitForPositionVisible(
         originalPosition.productName,
         originalPosition.warehouseName,
         originalPosition.amount
@@ -125,7 +125,7 @@ test.describe('Position Management Tests', () => {
     await positionPage.savePosition();
 
     expect(
-      await positionPage.isPositionVisible(
+      await positionPage.waitForPositionVisible(
         updatedPosition.productName,
         updatedPosition.warehouseName,
         updatedPosition.amount

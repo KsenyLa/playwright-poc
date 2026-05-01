@@ -22,6 +22,20 @@ export class BasePage {
   }
 
   /**
+   * Wait for a successful API response matching method and path fragment.
+   */
+  async waitForApiResponse(method: string, pathFragment: string) {
+    return await this.page.waitForResponse((response) => {
+      const request = response.request();
+      return (
+        request.method() === method &&
+        response.url().includes(pathFragment) &&
+        response.ok()
+      );
+    });
+  }
+
+  /**
    * Get element by test ID
    */
   getByTestId(testId: string): Locator {

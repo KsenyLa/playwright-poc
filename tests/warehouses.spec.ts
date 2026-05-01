@@ -47,14 +47,14 @@ test.describe('Warehouse Management Tests', () => {
     await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
     await warehousePage.saveWarehouse();
 
-    expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(true);
+    expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
     expect(await warehousePage.getWarehouseDescription(warehouse.name)).toBe(warehouse.description);
     expect(await warehousePage.countWarehousesByName(warehouse.name)).toBe(1);
 
     await warehousePage.page.reload();
     await navigationPage.waitForPageLoad();
 
-    expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(true);
+    expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
   });
 
   test('should edit the existing warehouse', async () => {
@@ -65,7 +65,7 @@ test.describe('Warehouse Management Tests', () => {
     await warehousePage.fillWarehouseForm(updatedWarehouse.name, updatedWarehouse.description);
     await warehousePage.saveWarehouse();
 
-    expect(await warehousePage.isWarehouseVisible(updatedWarehouse.name)).toBe(true);
+    expect(await warehousePage.waitForWarehouseVisible(updatedWarehouse.name)).toBe(true);
     expect(await warehousePage.getWarehouseDescription(updatedWarehouse.name)).toBe(updatedWarehouse.description);
     expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(false);
   });
@@ -79,7 +79,7 @@ test.describe('Warehouse Management Tests', () => {
     await warehousePage.cancelWarehouseForm();
 
     expect(await warehousePage.isWarehouseVisible(draftWarehouse.name)).toBe(false);
-    expect(await warehousePage.isWarehouseVisible(updatedWarehouse.name)).toBe(true);
+    expect(await warehousePage.waitForWarehouseVisible(updatedWarehouse.name)).toBe(true);
     expect(await warehousePage.getWarehouseDescription(updatedWarehouse.name)).toBe(updatedWarehouse.description);
   });
 

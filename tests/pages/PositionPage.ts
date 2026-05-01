@@ -118,9 +118,23 @@ export class PositionPage extends BasePage {
    * Save position form
    */
   async savePosition() {
-    await this.click('btn-save-position');
+    const saveMethod = this.page.url().includes('/positions/edit/') ? 'PUT' : 'POST';
+    const saveResponsePromise = this.waitForApiResponse(saveMethod, '/positions');
+    const positionsListResponsePromise = this.waitForApiResponse('GET', '/positions');
+    const warehousesListResponsePromise = this.waitForApiResponse('GET', '/warehouses');
+    const productsListResponsePromise = this.waitForApiResponse('GET', '/products');
+
+    await Promise.all([
+      saveResponsePromise,
+      this.click('btn-save-position'),
+    ]);
     await this.page.waitForURL('**/positions');
-    await this.waitForElement('page-title-positions');
+    await this.waitForElement('list-positions');
+    await Promise.all([
+      positionsListResponsePromise,
+      warehousesListResponsePromise,
+      productsListResponsePromise,
+    ]);
   }
 
   /**
@@ -185,7 +199,7 @@ export class PositionPage extends BasePage {
     warehouseName: string,
     amount?: number,
     timeoutMs: number = 3000
-  ): Promise<Locator | null> {
+  ): Promise<Locator> {
     const deadline = Date.now() + timeoutMs;
 
     do {
@@ -197,25 +211,30 @@ export class PositionPage extends BasePage {
       await this.page.waitForTimeout(100);
     } while (Date.now() < deadline);
 
-    return null;
+    const amountLabel = amount === undefined ? 'any amount' : `amount "${amount}"`;
+    throw new Error(
+      `Position with product "${productName}", warehouse "${warehouseName}", and ${amountLabel} was not visible within ${timeoutMs}ms`
+    );
   }
 
   private async waitForPositionToDisappear(
     productName: string,
     warehouseName: string,
     timeoutMs: number = 3000
-  ): Promise<boolean> {
+  ): Promise<void> {
     const deadline = Date.now() + timeoutMs;
 
     do {
       if ((await this.findPositionItemByValues(productName, warehouseName)) === null) {
-        return true;
+        return;
       }
 
       await this.page.waitForTimeout(100);
     } while (Date.now() < deadline);
 
-    return false;
+    throw new Error(
+      `Position with product "${productName}" and warehouse "${warehouseName}" was still visible after ${timeoutMs}ms`
+    );
   }
 
   /**
@@ -224,6 +243,19 @@ export class PositionPage extends BasePage {
   async isPositionVisible(productName: string, warehouseName: string, amount: number): Promise<boolean> {
     const item = await this.findPositionItemByValues(productName, warehouseName, amount);
     return item !== null;
+  }
+
+  /**
+   * Wait for a position with exact values to appear.
+   */
+  async waitForPositionVisible(
+    productName: string,
+    warehouseName: string,
+    amount: number,
+    timeoutMs: number = 3000
+  ): Promise<boolean> {
+    await this.waitForPositionItemByValues(productName, warehouseName, amount, timeoutMs);
+    return true;
   }
 
   /**
@@ -238,8 +270,11 @@ export class PositionPage extends BasePage {
    * Get position ID by product and warehouse names (returns exact match)
    */
   async getPositionIdByNames(productName: string, warehouseName: string): Promise<string | null> {
-    const item = await this.waitForPositionItemByValues(productName, warehouseName);
-    if (!item) {
+    let item: Locator;
+
+    try {
+      item = await this.waitForPositionItemByValues(productName, warehouseName);
+    } catch {
       return null;
     }
 
@@ -259,7 +294,8 @@ export class PositionPage extends BasePage {
 
     await this.acceptNextDialog();
     await this.clickDeletePosition(positionId);
-    return await this.waitForPositionToDisappear(productName, warehouseName);
+    await this.waitForPositionToDisappear(productName, warehouseName);
+    return true;
   }
 
   /**
