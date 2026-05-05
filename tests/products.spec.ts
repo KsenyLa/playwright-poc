@@ -39,58 +39,85 @@ test.describe('Product Management Tests', () => {
   });
 
   test('should create a new product and keep it after refresh', async () => {
-    await productPage.clickAddProduct();
+    await test.step('open product create form and verify required fields', async () => {
+      await productPage.clickAddProduct();
+      const nameInput = productPage.getByTestId('input-name-product');
+      const priceInput = productPage.getByTestId('input-price-product');
 
-    const nameInput = productPage.getByTestId('input-name-product');
-    const priceInput = productPage.getByTestId('input-price-product');
+      expect(await nameInput.getAttribute('required')).not.toBeNull();
+      expect(await priceInput.getAttribute('required')).not.toBeNull();
+      expect(await priceInput.getAttribute('type')).toBe('number');
+      expect(await priceInput.getAttribute('min')).toBe('0');
+    });
 
-    expect(await nameInput.getAttribute('required')).not.toBeNull();
-    expect(await priceInput.getAttribute('required')).not.toBeNull();
-    expect(await priceInput.getAttribute('type')).toBe('number');
-    expect(await priceInput.getAttribute('min')).toBe('0');
+    await test.step('create a new product', async () => {
+      await productPage.fillProductForm(product.name, product.price);
+      await productPage.saveProduct();
+    });
 
-    await productPage.fillProductForm(product.name, product.price);
-    await productPage.saveProduct();
+    await test.step('verify created product is visible in the list', async () => {
+      expect(await productPage.waitForProductVisible(product.name)).toBe(true);
+      expect(await productPage.getProductPrice(product.name)).toBe(product.price);
+      expect(await productPage.countProductsByName(product.name)).toBe(1);
+    });
 
-    expect(await productPage.waitForProductVisible(product.name)).toBe(true);
-    expect(await productPage.getProductPrice(product.name)).toBe(product.price);
-    expect(await productPage.countProductsByName(product.name)).toBe(1);
-
-    await productPage.page.reload();
-    await navigationPage.waitForPageLoad();
-
-    expect(await productPage.waitForProductVisible(product.name)).toBe(true);
-    expect(await productPage.getProductPrice(product.name)).toBe(product.price);
+    await test.step('reload page and verify product still exists', async () => {
+      await productPage.page.reload();
+      await navigationPage.waitForPageLoad();
+      expect(await productPage.waitForProductVisible(product.name)).toBe(true);
+      expect(await productPage.getProductPrice(product.name)).toBe(product.price);
+    });
   });
 
   test('should edit the existing product', async () => {
-    const productId = await productPage.getProductIdByName(product.name);
-    expect(productId).not.toBeNull();
+    let productId: string | null;
 
-    await productPage.clickEditProduct(productId!);
-    await productPage.fillProductForm(updatedProduct.name, updatedProduct.price);
-    await productPage.saveProduct();
+    await test.step('find existing product and open edit form', async () => {
+      productId = await productPage.getProductIdByName(product.name);
+      expect(productId).not.toBeNull();
+      await productPage.clickEditProduct(productId!);
+    });
 
-    expect(await productPage.waitForProductVisible(updatedProduct.name)).toBe(true);
-    expect(await productPage.getProductPrice(updatedProduct.name)).toBe(updatedProduct.price);
-    expect(await productPage.isProductVisible(product.name)).toBe(false);
+    await test.step('update product details', async () => {
+      await productPage.fillProductForm(updatedProduct.name, updatedProduct.price);
+      await productPage.saveProduct();
+    });
+
+    await test.step('verify updated product is shown and original name is gone', async () => {
+      expect(await productPage.waitForProductVisible(updatedProduct.name)).toBe(true);
+      expect(await productPage.getProductPrice(updatedProduct.name)).toBe(updatedProduct.price);
+      expect(await productPage.isProductVisible(product.name)).toBe(false);
+    });
   });
 
   test('should cancel an edit without changing the saved product', async () => {
-    const productId = await productPage.getProductIdByName(updatedProduct.name);
-    expect(productId).not.toBeNull();
+    let productId: string | null;
 
-    await productPage.clickEditProduct(productId!);
-    await productPage.fillProductForm(draftProduct.name, draftProduct.price);
-    await productPage.cancelProductForm();
+    await test.step('open edit form for updated product', async () => {
+      productId = await productPage.getProductIdByName(updatedProduct.name);
+      expect(productId).not.toBeNull();
+      await productPage.clickEditProduct(productId!);
+    });
 
-    expect(await productPage.isProductVisible(draftProduct.name)).toBe(false);
-    expect(await productPage.waitForProductVisible(updatedProduct.name)).toBe(true);
-    expect(await productPage.getProductPrice(updatedProduct.name)).toBe(updatedProduct.price);
+    await test.step('change values and cancel editing', async () => {
+      await productPage.fillProductForm(draftProduct.name, draftProduct.price);
+      await productPage.cancelProductForm();
+    });
+
+    await test.step('verify canceled changes were not saved', async () => {
+      expect(await productPage.isProductVisible(draftProduct.name)).toBe(false);
+      expect(await productPage.waitForProductVisible(updatedProduct.name)).toBe(true);
+      expect(await productPage.getProductPrice(updatedProduct.name)).toBe(updatedProduct.price);
+    });
   });
 
   test('should delete the product at the end of the scenario', async () => {
-    expect(await productPage.deleteProductByName(updatedProduct.name)).toBe(true);
-    expect(await productPage.isProductVisible(updatedProduct.name)).toBe(false);
+    await test.step('delete the updated product', async () => {
+      expect(await productPage.deleteProductByName(updatedProduct.name)).toBe(true);
+    });
+
+    await test.step('verify the product is no longer visible', async () => {
+      expect(await productPage.isProductVisible(updatedProduct.name)).toBe(false);
+    });
   });
 });

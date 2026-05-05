@@ -54,7 +54,7 @@ export class WarehousePage extends BasePage {
    * Get all warehouse items
    */
   getWarehouseItems(): Locator {
-    return this.page.locator('[data-testid^="warehouse-item-"]');
+    return this.getLocator('[data-testid^="warehouse-item-"]');
   }
 
   /**
@@ -79,7 +79,7 @@ export class WarehousePage extends BasePage {
     const exactName = new RegExp(`^${escapeForRegex(name)}$`);
 
     return this.getWarehouseItems().filter({
-      has: this.page.locator('.warehouse-name', { hasText: exactName }),
+      has: this.getLocator('.warehouse-name').filter({ hasText: exactName }),
     });
   }
 
@@ -203,5 +203,25 @@ export class WarehousePage extends BasePage {
     const list = this.getByTestId('list-warehouses');
     const text = await list.textContent();
     return text?.includes('No warehouses found') || false;
+  }
+
+    /**
+   * Verify search component is visible
+   */
+  async verifySearchIsVisible() {
+    await this.waitForLocator(this.getLocator('.warehouse-list-container .list-controls input[type="search"]'));
+  }
+
+  /**
+   * Search warehouses by name using the search input
+   */
+  async searchWarehouse(name: string): Promise<void> {
+    const searchInput = this.getLocator('.warehouse-list-container .list-controls input[type="search"]');
+    await this.fillLocator(searchInput,name);
+  }
+
+  async clearWarehouseSearch(): Promise<void> {
+    const searchInput = this.getLocator('.warehouse-list-container .list-controls input[type="search"]');
+    await this.fillLocator(searchInput, '');
   }
 }

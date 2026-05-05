@@ -39,52 +39,86 @@ test.describe('Warehouse Management Tests', () => {
   });
 
   test('should create a new warehouse and keep it after refresh', async () => {
-    await warehousePage.clickAddWarehouse();
+    await test.step('open warehouse create form and verify required fields', async () => {
+      await warehousePage.clickAddWarehouse();
+      const nameInput = warehousePage.getByTestId('input-name-warehouse');
+      expect(await nameInput.getAttribute('required')).not.toBeNull();
+    });
 
-    const nameInput = warehousePage.getByTestId('input-name-warehouse');
-    expect(await nameInput.getAttribute('required')).not.toBeNull();
+    await test.step('create a new warehouse', async () => {
+      await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
+      await warehousePage.saveWarehouse();
+    });
 
-    await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
-    await warehousePage.saveWarehouse();
+    await test.step('verify created warehouse is visible in the list', async () => {
+      expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
+      expect(await warehousePage.getWarehouseDescription(warehouse.name)).toBe(warehouse.description);
+      expect(await warehousePage.countWarehousesByName(warehouse.name)).toBe(1);
+    });
 
-    expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
-    expect(await warehousePage.getWarehouseDescription(warehouse.name)).toBe(warehouse.description);
-    expect(await warehousePage.countWarehousesByName(warehouse.name)).toBe(1);
+    await test.step('verify warehouse search is visible and usable', async () => {
+      await warehousePage.verifySearchIsVisible();
+      await warehousePage.searchWarehouse(warehouse.name);
+      expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
+      expect(await warehousePage.countWarehousesByName(warehouse.name)).toBe(1);
+    });
 
-    await warehousePage.page.reload();
-    await navigationPage.waitForPageLoad();
-
-    expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
+    await test.step('reload page and verify warehouse still exists', async () => {
+      await warehousePage.page.reload();
+      await navigationPage.waitForPageLoad();
+      expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
+    });
   });
 
   test('should edit the existing warehouse', async () => {
-    const warehouseId = await warehousePage.getWarehouseIdByName(warehouse.name);
-    expect(warehouseId).not.toBeNull();
+    let warehouseId: string | null;
 
-    await warehousePage.clickEditWarehouse(warehouseId!);
-    await warehousePage.fillWarehouseForm(updatedWarehouse.name, updatedWarehouse.description);
-    await warehousePage.saveWarehouse();
+    await test.step('find existing warehouse and open edit form', async () => {
+      warehouseId = await warehousePage.getWarehouseIdByName(warehouse.name);
+      expect(warehouseId).not.toBeNull();
+      await warehousePage.clickEditWarehouse(warehouseId!);
+    });
 
-    expect(await warehousePage.waitForWarehouseVisible(updatedWarehouse.name)).toBe(true);
-    expect(await warehousePage.getWarehouseDescription(updatedWarehouse.name)).toBe(updatedWarehouse.description);
-    expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(false);
+    await test.step('update warehouse details', async () => {
+      await warehousePage.fillWarehouseForm(updatedWarehouse.name, updatedWarehouse.description);
+      await warehousePage.saveWarehouse();
+    });
+
+    await test.step('verify updated warehouse is shown and original name is gone', async () => {
+      expect(await warehousePage.waitForWarehouseVisible(updatedWarehouse.name)).toBe(true);
+      expect(await warehousePage.getWarehouseDescription(updatedWarehouse.name)).toBe(updatedWarehouse.description);
+      expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(false);
+    });
   });
 
   test('should cancel an edit without changing the saved warehouse', async () => {
-    const warehouseId = await warehousePage.getWarehouseIdByName(updatedWarehouse.name);
-    expect(warehouseId).not.toBeNull();
+    let warehouseId: string | null;
 
-    await warehousePage.clickEditWarehouse(warehouseId!);
-    await warehousePage.fillWarehouseForm(draftWarehouse.name, draftWarehouse.description);
-    await warehousePage.cancelWarehouseForm();
+    await test.step('open edit form for updated warehouse', async () => {
+      warehouseId = await warehousePage.getWarehouseIdByName(updatedWarehouse.name);
+      expect(warehouseId).not.toBeNull();
+      await warehousePage.clickEditWarehouse(warehouseId!);
+    });
 
-    expect(await warehousePage.isWarehouseVisible(draftWarehouse.name)).toBe(false);
-    expect(await warehousePage.waitForWarehouseVisible(updatedWarehouse.name)).toBe(true);
-    expect(await warehousePage.getWarehouseDescription(updatedWarehouse.name)).toBe(updatedWarehouse.description);
+    await test.step('change values and cancel editing', async () => {
+      await warehousePage.fillWarehouseForm(draftWarehouse.name, draftWarehouse.description);
+      await warehousePage.cancelWarehouseForm();
+    });
+
+    await test.step('verify canceled changes were not saved', async () => {
+      expect(await warehousePage.isWarehouseVisible(draftWarehouse.name)).toBe(false);
+      expect(await warehousePage.waitForWarehouseVisible(updatedWarehouse.name)).toBe(true);
+      expect(await warehousePage.getWarehouseDescription(updatedWarehouse.name)).toBe(updatedWarehouse.description);
+    });
   });
 
   test('should delete the warehouse at the end of the scenario', async () => {
-    expect(await warehousePage.deleteWarehouseByName(updatedWarehouse.name)).toBe(true);
-    expect(await warehousePage.isWarehouseVisible(updatedWarehouse.name)).toBe(false);
+    await test.step('delete the updated warehouse', async () => {
+      expect(await warehousePage.deleteWarehouseByName(updatedWarehouse.name)).toBe(true);
+    });
+
+    await test.step('verify the warehouse is no longer visible', async () => {
+      expect(await warehousePage.isWarehouseVisible(updatedWarehouse.name)).toBe(false);
+    });
   });
 });

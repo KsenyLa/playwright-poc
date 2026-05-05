@@ -50,113 +50,138 @@ test.describe('Position Management Tests', () => {
   });
 
   test('should create prerequisite product and warehouse, then create a position', async () => {
-    await navigationPage.navigateToWarehouses();
-    await warehousePage.clickAddWarehouse();
-    await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
-    await warehousePage.saveWarehouse();
-    expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
+    await test.step('create prerequisite warehouse through the UI', async () => {
+      await navigationPage.navigateToWarehouses();
+      await warehousePage.clickAddWarehouse();
+      await warehousePage.fillWarehouseForm(warehouse.name, warehouse.description);
+      await warehousePage.saveWarehouse();
+      expect(await warehousePage.waitForWarehouseVisible(warehouse.name)).toBe(true);
+    });
 
-    await navigationPage.navigateToProducts();
-    await productPage.clickAddProduct();
-    await productPage.fillProductForm(product.name, product.price);
-    await productPage.saveProduct();
-    expect(await productPage.waitForProductVisible(product.name)).toBe(true);
+    await test.step('create prerequisite product through the UI', async () => {
+      await navigationPage.navigateToProducts();
+      await productPage.clickAddProduct();
+      await productPage.fillProductForm(product.name, product.price);
+      await productPage.saveProduct();
+      expect(await productPage.waitForProductVisible(product.name)).toBe(true);
+    });
 
-    await navigationPage.navigateToPositions();
-    await positionPage.clickAddPosition();
+    await test.step('open position create form and verify required fields', async () => {
+      await navigationPage.navigateToPositions();
+      await positionPage.clickAddPosition();
 
-    const productSelect = positionPage.getByTestId('input-product-position');
-    const warehouseSelect = positionPage.getByTestId('input-warehouse-position');
-    const amountInput = positionPage.getByTestId('input-amount-position');
+      const productSelect = positionPage.getByTestId('input-product-position');
+      const warehouseSelect = positionPage.getByTestId('input-warehouse-position');
+      const amountInput = positionPage.getByTestId('input-amount-position');
 
-    expect(await productSelect.getAttribute('required')).not.toBeNull();
-    expect(await warehouseSelect.getAttribute('required')).not.toBeNull();
-    expect(await amountInput.getAttribute('required')).not.toBeNull();
-    expect(await amountInput.getAttribute('type')).toBe('number');
-    expect(await amountInput.getAttribute('min')).toBe('0');
+      expect(await productSelect.getAttribute('required')).not.toBeNull();
+      expect(await warehouseSelect.getAttribute('required')).not.toBeNull();
+      expect(await amountInput.getAttribute('required')).not.toBeNull();
+      expect(await amountInput.getAttribute('type')).toBe('number');
+      expect(await amountInput.getAttribute('min')).toBe('0');
+    });
 
-    await positionPage.fillPositionForm(
-      originalPosition.productName,
-      originalPosition.warehouseName,
-      originalPosition.amount
-    );
-    await positionPage.savePosition();
-
-    expect(
-      await positionPage.waitForPositionVisible(
+    await test.step('create a new position', async () => {
+      await positionPage.fillPositionForm(
         originalPosition.productName,
         originalPosition.warehouseName,
         originalPosition.amount
-      )
-    ).toBe(true);
-    expect(
-      await positionPage.countPositionsByValues(
-        originalPosition.productName,
-        originalPosition.warehouseName,
-        originalPosition.amount
-      )
-    ).toBe(1);
+      );
+      await positionPage.savePosition();
+    });
 
-    await positionPage.page.reload();
-    await navigationPage.waitForPageLoad();
+    await test.step('verify created position is visible in the list', async () => {
+      expect(
+        await positionPage.waitForPositionVisible(
+          originalPosition.productName,
+          originalPosition.warehouseName,
+          originalPosition.amount
+        )
+      ).toBe(true);
+      expect(
+        await positionPage.countPositionsByValues(
+          originalPosition.productName,
+          originalPosition.warehouseName,
+          originalPosition.amount
+        )
+      ).toBe(1);
+    });
 
-    expect(
-      await positionPage.waitForPositionVisible(
-        originalPosition.productName,
-        originalPosition.warehouseName,
-        originalPosition.amount
-      )
-    ).toBe(true);
+    await test.step('reload page and verify position still exists', async () => {
+      await positionPage.page.reload();
+      await navigationPage.waitForPageLoad();
+      expect(
+        await positionPage.waitForPositionVisible(
+          originalPosition.productName,
+          originalPosition.warehouseName,
+          originalPosition.amount
+        )
+      ).toBe(true);
+    });
   });
 
   test('should edit the existing position amount', async () => {
-    const positionId = await positionPage.getPositionIdByNames(
-      originalPosition.productName,
-      originalPosition.warehouseName
-    );
-    expect(positionId).not.toBeNull();
+    let positionId: string | null;
 
-    await positionPage.clickEditPosition(positionId!);
-    await positionPage.fillPositionForm(
-      updatedPosition.productName,
-      updatedPosition.warehouseName,
-      updatedPosition.amount
-    );
-    await positionPage.savePosition();
+    await test.step('find existing position and open edit form', async () => {
+      positionId = await positionPage.getPositionIdByNames(
+        originalPosition.productName,
+        originalPosition.warehouseName
+      );
+      expect(positionId).not.toBeNull();
+      await positionPage.clickEditPosition(positionId!);
+    });
 
-    expect(
-      await positionPage.waitForPositionVisible(
+    await test.step('update position amount', async () => {
+      await positionPage.fillPositionForm(
         updatedPosition.productName,
         updatedPosition.warehouseName,
         updatedPosition.amount
-      )
-    ).toBe(true);
-    expect(
-      await positionPage.isPositionVisible(
-        originalPosition.productName,
-        originalPosition.warehouseName,
-        originalPosition.amount
-      )
-    ).toBe(false);
+      );
+      await positionPage.savePosition();
+    });
+
+    await test.step('verify updated position is shown and old amount is gone', async () => {
+      expect(
+        await positionPage.waitForPositionVisible(
+          updatedPosition.productName,
+          updatedPosition.warehouseName,
+          updatedPosition.amount
+        )
+      ).toBe(true);
+      expect(
+        await positionPage.isPositionVisible(
+          originalPosition.productName,
+          originalPosition.warehouseName,
+          originalPosition.amount
+        )
+      ).toBe(false);
+    });
   });
 
   test('should delete the position and then remove its dependencies', async () => {
-    await navigationPage.navigateToPositions();
-    expect(await positionPage.deletePositionByNames(product.name, warehouse.name)).toBe(true);
-    expect(
-      await positionPage.isPositionVisible(
-        updatedPosition.productName,
-        updatedPosition.warehouseName,
-        updatedPosition.amount
-      )
-    ).toBe(false);
+    await test.step('delete the position from the positions page', async () => {
+      await navigationPage.navigateToPositions();
+      expect(await positionPage.deletePositionByNames(product.name, warehouse.name)).toBe(true);
+      expect(
+        await positionPage.isPositionVisible(
+          updatedPosition.productName,
+          updatedPosition.warehouseName,
+          updatedPosition.amount
+        )
+      ).toBe(false);
+    });
 
-    await navigationPage.navigateToProducts();
-    expect(await productPage.deleteProductByName(product.name)).toBe(true);
-    expect(await productPage.isProductVisible(product.name)).toBe(false);
+    await test.step('delete the dependent product', async () => {
+      await navigationPage.navigateToProducts();
+      expect(await productPage.deleteProductByName(product.name)).toBe(true);
+      expect(await productPage.isProductVisible(product.name)).toBe(false);
+    });
 
-    await navigationPage.navigateToWarehouses();
-    expect(await warehousePage.deleteWarehouseByName(warehouse.name)).toBe(true);
-    expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(false);
+    await test.step('delete the dependent warehouse', async () => {
+      await navigationPage.navigateToWarehouses();
+      expect(await warehousePage.deleteWarehouseByName(warehouse.name)).toBe(true);
+      expect(await warehousePage.isWarehouseVisible(warehouse.name)).toBe(false);
+    });
   });
 });

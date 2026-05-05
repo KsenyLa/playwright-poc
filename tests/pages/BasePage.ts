@@ -43,6 +43,20 @@ export class BasePage {
   }
 
   /**
+   * Get element by Playwright locator selector.
+   */
+  getLocator(selector: string): Locator {
+    return this.page.locator(selector);
+  }
+
+  /**
+   * Get element by visible text.
+   */
+  getByText(text: string | RegExp): Locator {
+    return this.page.getByText(text);
+  }
+
+  /**
    * Accept the next browser dialog, usually a delete confirmation.
    */
   async acceptNextDialog(expectedType: 'alert' | 'beforeunload' | 'confirm' | 'prompt' = 'confirm') {
@@ -57,6 +71,13 @@ export class BasePage {
    */
   async waitForElement(testId: string) {
     await this.getByTestId(testId).waitFor({ state: 'visible' });
+  }
+
+  /**
+   * Wait for locator to be visible
+   */
+  async waitForLocator(locator: Locator) {
+    await locator.waitFor({ state: 'visible' });
   }
 
   /**
@@ -81,6 +102,13 @@ export class BasePage {
   }
 
   /**
+   * Click a locator directly
+   */
+  async clickLocator(locator: Locator) {
+    await locator.click();
+  }
+
+  /**
    * Fill input field by test ID
    */
   async fillInput(testId: string, value: string) {
@@ -88,9 +116,23 @@ export class BasePage {
   }
 
   /**
+   * Fill a locator directly
+   */
+  async fillLocator(locator: Locator, value: string) {
+    await locator.fill(value);
+  }
+
+  /**
    * Select option in select element by test ID
    */
   async selectOption(testId: string, value: string) {
     await this.getByTestId(testId).selectOption(value);
+  }
+
+  /**
+   * Select option in a locator directly
+   */
+  async selectLocatorOption(locator: Locator, value: string) {
+    await locator.selectOption(value);
   }
 }
